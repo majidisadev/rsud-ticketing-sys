@@ -58,7 +58,9 @@ const Home = () => {
     } catch (err) {
       console.error('Error creating ticket:', err);
       if (err.code === 'ECONNREFUSED' || err.message === 'Network Error') {
-        setError('Tidak dapat terhubung ke server. Pastikan backend berjalan di http://localhost:5000');
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        setError(`Tidak dapat terhubung ke server. Pastikan backend berjalan di ${protocol}//${hostname}:5000`);
       } else {
         setError(err.response?.data?.message || err.message || 'Terjadi kesalahan');
       }

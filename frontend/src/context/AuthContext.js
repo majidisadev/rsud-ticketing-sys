@@ -46,9 +46,24 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data.user);
       return res.data;
     } catch (error) {
+      // Handle different types of errors
       if (error.code === 'ECONNREFUSED' || error.message === 'Network Error') {
-        throw new Error('Tidak dapat terhubung ke server. Pastikan backend berjalan di http://localhost:5000');
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        throw new Error(`Tidak dapat terhubung ke server. Pastikan backend berjalan di ${protocol}//${hostname}:5000`);
       }
+      
+      // Handle blocked by client (ad blocker, etc.)
+      if (error.message && error.message.includes('diblokir')) {
+        throw new Error(error.message);
+      }
+      
+      // Handle CORS errors
+      if (error.message && error.message.includes('CORS')) {
+        throw new Error(error.message);
+      }
+      
+      // Re-throw other errors
       throw error;
     }
   };

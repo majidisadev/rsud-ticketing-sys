@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../config/api';
+import api, { getBaseUrl } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -198,7 +198,7 @@ const AdminTicketDetail = () => {
               </CardHeader>
               <CardContent>
                 <img
-                  src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${ticket.photoUrl}`}
+                  src={`${getBaseUrl()}${ticket.photoUrl}`}
                   alt="Foto masalah"
                   className="w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {

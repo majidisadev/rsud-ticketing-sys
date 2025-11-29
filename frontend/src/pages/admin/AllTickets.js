@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../config/api';
+import api, { getBaseUrl } from '../../config/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
@@ -67,7 +67,7 @@ const AllTicketsAdmin = () => {
       });
       
       const token = localStorage.getItem('token');
-      const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+      const baseUrl = getBaseUrl();
       const url = `${baseUrl}/api/reports/export/${type}?${params.toString()}`;
       
       const response = await fetch(url, {

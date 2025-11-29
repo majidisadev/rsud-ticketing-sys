@@ -30,7 +30,21 @@ const Login = () => {
         navigate('/technician/my-tasks');
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login gagal');
+      // Handle different error types
+      let errorMessage = 'Login gagal';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Special handling for blocked requests
+      if (errorMessage.includes('diblokir') || errorMessage.includes('blocked')) {
+        errorMessage = 'Request diblokir oleh browser. Silakan nonaktifkan ad blocker atau ekstensi yang memblokir request, lalu refresh halaman.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

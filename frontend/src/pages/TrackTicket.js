@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../config/api';
+import api, { getBaseUrl } from '../config/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -115,7 +115,7 @@ const TrackTicket = () => {
               <div className="mb-6">
                 <p className="text-sm text-gray-600 mb-2">Foto Masalah</p>
                 <img
-                  src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${ticket.photoUrl}`}
+                  src={`${getBaseUrl()}${ticket.photoUrl}`}
                   alt="Foto masalah"
                   className="max-w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
