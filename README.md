@@ -15,30 +15,49 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 
 ## Instalasi
 
-1. Install semua dependencies:
+1. 
+Install semua dependencies:
 ```bash
 npm run install:all
 ```
+
+Generate VAPID Keys untuk Push Notifications
+```bash
+cd backend
+npm run generate-vapid
+```
+
+Copy output Public Key dan Private Key ke:
+- `backend/.env` (VAPID_PUBLIC_KEY dan VAPID_PRIVATE_KEY)
+- `frontend/.env` (REACT_APP_VAPID_PUBLIC_KEY)
 
 2. Setup database PostgreSQL dan buat file `.env` di folder `backend`:
 ```
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=ticketing_rsud
-DB_USER=your_username
+DB_USER=postgres
 DB_PASSWORD=your_password
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=ticketing_rsud_secret_key_change_in_production_12345
 PORT=5000
+NODE_ENV=development
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@rsud.local
 ```
 
-3. Jalankan migrasi database (akan dibuat otomatis)
+3. Buat database PostgreSQL:
+```sql
+CREATE DATABASE ticketing_rsud;
+```
 
-4. Development mode:
+5. Build:
+Development mode:
 ```bash
 npm run dev
 ```
 
-5. Production build:
+Production build:
 ```bash
 npm run build
 npm start
