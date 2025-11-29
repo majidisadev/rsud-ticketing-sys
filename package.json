@@ -1,0 +1,23 @@
+{
+  "name": "ticketing-rsud",
+  "version": "1.0.0",
+  "description": "Ticketing System for RSUD using PERN Stack",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm start",
+    "build": "cd frontend && npm run build && cd ../backend && npm run build",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd backend && npm start",
+    "start:client": "cd frontend && npm run serve",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": ["ticketing", "pern", "pwa"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

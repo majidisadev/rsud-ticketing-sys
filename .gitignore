@@ -1,0 +1,17 @@
+node_modules/
+.env
+.DS_Store
+*.log
+dist/
+build/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+backend/uploads/
+backend/node_modules/
+frontend/node_modules/
+frontend/build/
+frontend/.pwa/
+
