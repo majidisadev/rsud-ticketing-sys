@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
-import { Bell, CheckCheck } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -8,10 +10,33 @@ import { Badge } from './ui/badge';
 
 const NotificationMenu = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const readNotifications = notifications.filter(n => n.isRead);
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    setIsOpen(false);
+  };
+
+  const handleViewTicket = (e, ticketId) => {
+    e.stopPropagation(); // Prevent notification click event
+    if (!ticketId) return;
+    
+    setIsOpen(false);
+    
+    // Navigate based on user role
+    if (user?.role === 'admin') {
+      navigate(`/admin/ticket/${ticketId}`);
+    } else if (user?.role === 'teknisi_simrs' || user?.role === 'teknisi_ipsrs') {
+      navigate(`/technician/ticket/${ticketId}`);
+    }
+  };
 
   return (
     <div className="relative">
@@ -72,12 +97,7 @@ const NotificationMenu = () => {
                             "p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors",
                             !notification.isRead && "bg-blue-50"
                           )}
-                          onClick={() => {
-                            if (!notification.isRead) {
-                              markAsRead(notification.id);
-                            }
-                            setIsOpen(false);
-                          }}
+                          onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-1 min-w-0">
@@ -87,9 +107,22 @@ const NotificationMenu = () => {
                               <p className="text-sm text-gray-600 mt-1 break-words">
                                 {notification.message}
                               </p>
-                              <p className="text-xs text-gray-400 mt-2">
-                                {new Date(notification.createdAt).toLocaleString('id-ID')}
-                              </p>
+                              <div className="flex items-center justify-between mt-2">
+                                <p className="text-xs text-gray-400">
+                                  {new Date(notification.createdAt).toLocaleString('id-ID')}
+                                </p>
+                                {notification.ticketId && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={(e) => handleViewTicket(e, notification.ticketId)}
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Lihat Tiket
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             {!notification.isRead && (
                               <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
@@ -109,7 +142,7 @@ const NotificationMenu = () => {
                         <div
                           key={notification.id}
                           className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => setIsOpen(false)}
+                          onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-1 min-w-0">
@@ -119,9 +152,22 @@ const NotificationMenu = () => {
                               <p className="text-sm text-gray-600 mt-1 break-words">
                                 {notification.message}
                               </p>
-                              <p className="text-xs text-gray-400 mt-2">
-                                {new Date(notification.createdAt).toLocaleString('id-ID')}
-                              </p>
+                              <div className="flex items-center justify-between mt-2">
+                                <p className="text-xs text-gray-400">
+                                  {new Date(notification.createdAt).toLocaleString('id-ID')}
+                                </p>
+                                {notification.ticketId && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={(e) => handleViewTicket(e, notification.ticketId)}
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Lihat Tiket
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

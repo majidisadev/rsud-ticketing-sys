@@ -81,6 +81,13 @@ const Home = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
+          <div className="flex justify-center items-center mb-4">
+            <img 
+              src={`${process.env.PUBLIC_URL}/logo192.png`} 
+              alt="RSUD Logo" 
+              className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 object-contain"
+            />
+          </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">
             Sistem Ticketing RSUD
           </h1>

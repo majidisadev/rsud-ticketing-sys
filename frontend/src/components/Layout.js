@@ -51,7 +51,12 @@ const Layout = ({ children }) => {
                   <Menu className="w-6 h-6" />
                 )}
               </button>
-              <Link to={isAdmin ? '/admin/dashboard' : '/technician/my-tasks'} className="flex items-center ml-2 lg:ml-0">
+              <Link to={isAdmin ? '/admin/dashboard' : '/technician/my-tasks'} className="flex items-center gap-2 ml-2 lg:ml-0">
+                <img 
+                  src={`${process.env.PUBLIC_URL}/logo192.png`} 
+                  alt="RSUD Logo" 
+                  className="h-8 w-8 object-contain"
+                />
                 <h1 className="text-xl font-bold text-gray-800">Ticketing RSUD</h1>
               </Link>
             </div>

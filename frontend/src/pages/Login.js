@@ -54,6 +54,13 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
       <Card className="max-w-md w-full">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={`${process.env.PUBLIC_URL}/logo192.png`} 
+              alt="RSUD Logo" 
+              className="h-16 w-16 object-contain"
+            />
+          </div>
           <CardTitle className="text-2xl text-center">Login</CardTitle>
           <CardDescription className="text-center">
             Masuk ke akun Admin atau Teknisi
