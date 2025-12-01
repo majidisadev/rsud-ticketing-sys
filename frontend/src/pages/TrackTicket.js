@@ -115,7 +115,7 @@ const TrackTicket = () => {
               <div className="mb-6">
                 <p className="text-sm text-gray-600 mb-2">Foto Masalah</p>
                 <img
-                  src={`${getBaseUrl()}${ticket.photoUrl}`}
+                  src={`${getBaseUrl()}${ticket.photoUrl}?t=${ticket.updatedAt || Date.now()}`}
                   alt="Foto masalah"
                   className="max-w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
@@ -130,7 +130,7 @@ const TrackTicket = () => {
               <div className="mb-6">
                 <p className="text-sm text-gray-600 mb-2">Bukti Perbaikan</p>
                 <img
-                  src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${ticket.proofPhotoUrl}`}
+                  src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
                   alt="Bukti perbaikan"
                   className="max-w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {

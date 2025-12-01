@@ -56,8 +56,14 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files with proper cache headers
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    // Set cache headers: cache for 1 hour but always revalidate
+    // This allows caching while ensuring fresh content when needed
+    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+  }
+}));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
