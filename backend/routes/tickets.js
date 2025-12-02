@@ -217,6 +217,7 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
           [Op.or]: [
             { ticketNumber: { [Op.iLike]: `%${search}%` } },
             { reporterName: { [Op.iLike]: `%${search}%` } },
+            { reporterUnit: { [Op.iLike]: `%${search}%` } },
           ],
         },
       ];

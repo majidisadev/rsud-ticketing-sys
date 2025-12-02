@@ -43,12 +43,47 @@ const TrackTicket = () => {
   };
 
   const handleCopyTicketNumber = async () => {
+    if (!ticket || !ticket.ticketNumber) {
+      console.error('Ticket number not available');
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(ticket.ticketNumber);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(ticket.ticketNumber);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Fallback for older browsers or non-HTTPS
+        const textArea = document.createElement('textarea');
+        textArea.value = ticket.ticketNumber;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          } else {
+            throw new Error('Copy command failed');
+          }
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          alert('Gagal menyalin nomor tiket. Silakan salin secara manual: ' + ticket.ticketNumber);
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
     } catch (err) {
       console.error('Failed to copy:', err);
+      // Fallback: show alert with ticket number
+      alert('Gagal menyalin nomor tiket. Silakan salin secara manual: ' + ticket.ticketNumber);
     }
   };
 
