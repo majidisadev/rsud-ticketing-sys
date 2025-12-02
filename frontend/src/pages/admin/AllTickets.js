@@ -202,6 +202,7 @@ const AllTicketsAdmin = () => {
                 <TableHead>Nomor Tiket</TableHead>
                 <TableHead>Tanggal Masuk</TableHead>
                 <TableHead>Pelapor</TableHead>
+                <TableHead>Teknisi</TableHead>
                 <TableHead>Prioritas</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Aksi</TableHead>
@@ -210,7 +211,7 @@ const AllTicketsAdmin = () => {
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="7" className="text-center py-8 text-gray-500">
+                  <TableCell colSpan="8" className="text-center py-8 text-gray-500">
                     Tidak ada tiket
                   </TableCell>
                 </TableRow>
@@ -224,6 +225,13 @@ const AllTicketsAdmin = () => {
                     </TableCell>
                     <TableCell>
                       {ticket.reporterName} - {ticket.reporterUnit}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.assignedTechnician ? (
+                        <div className="text-sm">{ticket.assignedTechnician.fullName}</div>
+                      ) : (
+                        <div className="text-sm text-gray-400">-</div>
+                      )}
                     </TableCell>
                     <TableCell>{ticket.priority || '-'}</TableCell>
                     <TableCell>

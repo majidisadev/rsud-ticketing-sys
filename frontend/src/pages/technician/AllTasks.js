@@ -75,6 +75,18 @@ const TechnicianAllTasks = () => {
     return variants[status] || 'secondary';
   };
 
+  const getPriorityColor = (priority) => {
+    const priorityLower = (priority || '').toLowerCase();
+    if (priorityLower === 'rendah') {
+      return 'text-green-600 font-semibold';
+    } else if (priorityLower === 'sedang') {
+      return 'text-yellow-600 font-semibold';
+    } else if (priorityLower === 'tinggi') {
+      return 'text-red-600 font-semibold';
+    }
+    return '';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,7 +179,9 @@ const TechnicianAllTasks = () => {
                   <TableCell>
                     {ticket.reporterName} - {ticket.reporterUnit}
                   </TableCell>
-                  <TableCell>{ticket.priority || '-'}</TableCell>
+                  <TableCell className={getPriorityColor(ticket.priority)}>
+                    {ticket.priority || '-'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(ticket.status)}>
                       {ticket.status}

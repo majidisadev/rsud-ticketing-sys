@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../config/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Select } from '../components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     reporterName: '',
     reporterUnit: '',
@@ -94,16 +95,27 @@ const Home = () => {
           <p className="text-sm sm:text-base text-gray-600">Laporkan masalah dan lacak status tiket Anda</p>
         </div>
 
-        {/* Login Button */}
+        {/* Login Button and All Tickets Button */}
         <div className="text-center mb-4 sm:mb-6">
-          <a
-            href="/login"
-            className="inline-block"
-          >
-            <Button variant="default" className="text-sm sm:text-base">
-              Login Admin/Teknisi
-            </Button>
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {user && (user.role === 'admin' || user.role === 'teknisi_simrs' || user.role === 'teknisi_ipsrs') ? (
+              <Button
+                onClick={() => navigate(user.role === 'admin' ? '/admin/tickets' : '/technician/all-tasks')}
+                variant="default"
+                className="text-sm sm:text-base"
+              >
+                Semua Tiket
+              </Button>
+            ) : null}
+            <a
+              href="/login"
+              className="inline-block"
+            >
+              <Button variant="default" className="text-sm sm:text-base">
+                Login Admin/Teknisi
+              </Button>
+            </a>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -149,17 +161,39 @@ const Home = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Kategori *</Label>
-                  <Select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="SIMRS">SIMRS</option>
-                    <option value="IPSRS">IPSRS</option>
-                  </Select>
+                  <Label>Kategori *</Label>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="category-simrs"
+                        name="category"
+                        value="SIMRS"
+                        checked={formData.category === 'SIMRS'}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        required
+                      />
+                      <Label htmlFor="category-simrs" className="font-normal cursor-pointer">
+                        SIMRS
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="category-ipsrs"
+                        name="category"
+                        value="IPSRS"
+                        checked={formData.category === 'IPSRS'}
+                        onChange={handleInputChange}
+                        disabled
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <Label htmlFor="category-ipsrs" className="font-normal cursor-not-allowed opacity-50">
+                        IPSRS
+                      </Label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

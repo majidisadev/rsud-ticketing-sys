@@ -51,7 +51,7 @@ const Layout = ({ children }) => {
                   <Menu className="w-6 h-6" />
                 )}
               </button>
-              <Link to={isAdmin ? '/admin/dashboard' : '/technician/my-tasks'} className="flex items-center gap-2 ml-2 lg:ml-0">
+              <Link to="/" className="flex items-center gap-2 ml-2 lg:ml-0">
                 <img 
                   src={`${process.env.PUBLIC_URL}/logo192.png`} 
                   alt="RSUD Logo" 

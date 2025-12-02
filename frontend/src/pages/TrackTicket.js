@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api, { getBaseUrl } from '../config/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Copy, Download, Check } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 const TrackTicket = () => {
   const { ticketNumber } = useParams();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const ticketRef = useRef(null);
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -39,6 +42,47 @@ const TrackTicket = () => {
     return variants[status] || 'secondary';
   };
 
+  const handleCopyTicketNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(ticket.ticketNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleSaveAsImage = async () => {
+    if (!ticketRef.current) return;
+
+    try {
+      // Hide buttons temporarily during capture
+      const saveButton = document.querySelector('[data-save-button]');
+      if (saveButton) saveButton.style.display = 'none';
+
+      const canvas = await html2canvas(ticketRef.current, {
+        backgroundColor: '#f9fafb',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+
+      // Restore button visibility
+      if (saveButton) saveButton.style.display = '';
+
+      const link = document.createElement('a');
+      link.download = `tiket-${ticket.ticketNumber}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Failed to save image:', err);
+      alert('Gagal menyimpan gambar');
+      // Restore button visibility in case of error
+      const saveButton = document.querySelector('[data-save-button]');
+      if (saveButton) saveButton.style.display = '';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -65,17 +109,44 @@ const TrackTicket = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6" ref={ticketRef}>
         <Card>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex-1">
                 <CardTitle>Detail Tiket</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">{ticket.ticketNumber}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm text-gray-600">{ticket.ticketNumber}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyTicketNumber}
+                    className="h-6 w-6 p-0"
+                    title="Salin nomor tiket"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-600" />
+                    )}
+                  </Button>
+                </div>
               </div>
-              <Badge variant={getStatusVariant(ticket.status)}>
-                {ticket.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveAsImage}
+                  className="flex items-center gap-2"
+                  data-save-button
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Simpan sebagai Gambar</span>
+                </Button>
+                <Badge variant={getStatusVariant(ticket.status)}>
+                  {ticket.status}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -102,7 +173,21 @@ const TrackTicket = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Teknisi</p>
-                <p className="font-medium">{ticket.assignedTechnician?.fullName || '-'}</p>
+                <p className="font-medium">
+                  {ticket.assignedTechnician 
+                    ? `${ticket.assignedTechnician.fullName}${ticket.assignedTechnician.phoneNumber ? ` - ${ticket.assignedTechnician.phoneNumber}` : ''}`
+                    : '-'}
+                  {ticket.coAssignments && ticket.coAssignments.length > 0 && (
+                    <span className="text-gray-500 ml-2">
+                      (+ {ticket.coAssignments
+                        .map(ca => ca.technician 
+                          ? `${ca.technician.fullName}${ca.technician.phoneNumber ? ` - ${ca.technician.phoneNumber}` : ''}`
+                          : null)
+                        .filter(Boolean)
+                        .join(', ')})
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
 

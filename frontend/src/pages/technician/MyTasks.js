@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../config/api';
+import ActionModal from '../../components/ActionModal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, Plus } from 'lucide-react';
 
 const TechnicianMyTasks = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [showActionModal, setShowActionModal] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     status: ''
@@ -39,6 +42,11 @@ const TechnicianMyTasks = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleOpenActionModal = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowActionModal(true);
+  };
+
   const getStatusVariant = (status) => {
     const variants = {
       Baru: 'default',
@@ -47,6 +55,18 @@ const TechnicianMyTasks = () => {
       Batal: 'destructive'
     };
     return variants[status] || 'secondary';
+  };
+
+  const getPriorityColor = (priority) => {
+    const priorityLower = (priority || '').toLowerCase();
+    if (priorityLower === 'rendah') {
+      return 'text-green-600 font-semibold';
+    } else if (priorityLower === 'sedang') {
+      return 'text-yellow-600 font-semibold';
+    } else if (priorityLower === 'tinggi') {
+      return 'text-red-600 font-semibold';
+    }
+    return '';
   };
 
   if (loading) {
@@ -99,7 +119,7 @@ const TechnicianMyTasks = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Nomor Tiket</TableHead>
-                <TableHead>Kategori</TableHead>
+                <TableHead>Tanggal Masuk</TableHead>
                 <TableHead>Pelapor</TableHead>
                 <TableHead>Prioritas</TableHead>
                 <TableHead>Status</TableHead>
@@ -117,23 +137,37 @@ const TechnicianMyTasks = () => {
                 tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
                     <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                    <TableCell>{ticket.category}</TableCell>
+                    <TableCell>
+                      {new Date(ticket.createdAt).toLocaleDateString('id-ID')}
+                    </TableCell>
                     <TableCell>
                       {ticket.reporterName} - {ticket.reporterUnit}
                     </TableCell>
-                    <TableCell>{ticket.priority || '-'}</TableCell>
+                    <TableCell className={getPriorityColor(ticket.priority)}>
+                      {ticket.priority || '-'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(ticket.status)}>
                         {ticket.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Link to={`/technician/ticket/${ticket.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          Detail
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenActionModal(ticket)}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Tindakan
                         </Button>
-                      </Link>
+                        <Link to={`/technician/ticket/${ticket.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Detail
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -142,6 +176,18 @@ const TechnicianMyTasks = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Action Modal */}
+      {showActionModal && selectedTicket && (
+        <ActionModal
+          ticket={selectedTicket}
+          onClose={() => {
+            setShowActionModal(false);
+            setSelectedTicket(null);
+          }}
+          onUpdate={fetchTickets}
+        />
+      )}
     </div>
   );
 };
