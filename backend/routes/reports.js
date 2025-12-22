@@ -122,11 +122,11 @@ router.get(
         { header: "Kategori", key: "category", width: 10 },
         { header: "Nomor Tiket", key: "ticketNumber", width: 20 },
         { header: "Tanggal Masuk", key: "createdAt", width: 20 },
-        { header: "Tanggal Terakhir Update", key: "updatedAt", width: 20 },
         { header: "Pelapor", key: "reporterName", width: 20 },
         { header: "Asal Unit", key: "reporterUnit", width: 20 },
         { header: "Teknisi", key: "technician", width: 20 },
         { header: "Deskripsi Masalah", key: "description", width: 50 },
+        { header: "Status", key: "status", width: 15 },
       ];
 
       worksheet.getRow(1).font = { bold: true };
@@ -151,11 +151,11 @@ router.get(
           category: ticket.category,
           ticketNumber: ticket.ticketNumber,
           createdAt: moment(ticket.createdAt).format("YYYY-MM-DD HH:mm:ss"),
-          updatedAt: moment(ticket.updatedAt).format("YYYY-MM-DD HH:mm:ss"),
           reporterName: ticket.reporterName,
           reporterUnit: ticket.reporterUnit,
           technician: technicianText,
           description: ticket.description || "-",
+          status: ticket.status || "-",
         });
       });
 

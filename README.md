@@ -1,6 +1,6 @@
 # Ticketing System RSUD
 
-Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React, Node.js) dengan Tailwind CSS dan PWA support.
+Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React, Node.js) dengan Tailwind CSS.
 
 ## Prerequisites
 
@@ -10,7 +10,6 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 
 ## Fitur Utama
 
-- PWA (Progressive Web App) - Installable dan offline support
 - Notifikasi real-time dengan suara
 - Mobile-first design
 - Role-based access control (Admin, Teknisi SIMRS, Teknisi IPSRS)
@@ -134,13 +133,6 @@ ticketing-rsud/
 
 - Form pelaporan masalah
 - Tracking tiket dengan nomor tiket
-
-## PWA Features
-
-- Installable di device
-- Offline support
-- Push notifications dengan suara
-- Mobile-first design
 
 ## Notifications
 

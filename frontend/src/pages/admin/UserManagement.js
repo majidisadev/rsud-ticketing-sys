@@ -189,8 +189,8 @@ const UserManagement = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
-            <CardHeader>
+          <Card className="max-w-md w-full max-h-[90vh] flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <div className="flex justify-between items-center">
                 <CardTitle>{editingUser ? 'Edit User' : 'Tambah User'}</CardTitle>
                 <Button
@@ -205,7 +205,7 @@ const UserManagement = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-y-auto flex-1">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Username *</Label>

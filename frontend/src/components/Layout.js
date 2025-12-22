@@ -100,7 +100,6 @@ const Layout = ({ children }) => {
                   <div className="p-2">
                     <div className="px-3 py-2 text-sm text-gray-700 border-b border-gray-100">
                       <p className="font-medium">{user?.fullName}</p>
-                      <p className="text-xs text-gray-500">{user?.email || user?.username}</p>
                     </div>
                     <button
                       onClick={handleLogout}
