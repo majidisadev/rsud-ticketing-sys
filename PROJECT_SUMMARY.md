@@ -36,6 +36,8 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 - **Lucide React** untuk icons
 - **Class Variance Authority** & **clsx** untuk styling utilities
 - **Web Push API** untuk push notifications
+- **html2canvas** untuk screenshot/capture functionality
+- **serve** untuk serving production build
 
 ## Fitur Utama
 
@@ -97,6 +99,13 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 - Service worker untuk caching
 - Native app-like experience
 
+### 7. System Settings
+
+- Settings management untuk konfigurasi sistem
+- Enable/disable kategori IPSRS (ipsrs_enabled)
+- Public endpoint untuk check status IPSRS
+- Admin-only settings management
+
 ## Struktur Project
 
 ```
@@ -107,6 +116,8 @@ rsud-ticketing-sys/
 │   ├── db/
 │   │   ├── init.js              # Database initialization & seeding
 │   │   └── migrations/          # Database migrations
+│   ├── scripts/
+│   │   └── init-db.js           # Database initialization script
 │   ├── middleware/
 │   │   ├── auth.js              # JWT authentication & authorization
 │   │   └── activityLogger.js    # Activity logging middleware
@@ -117,6 +128,7 @@ rsud-ticketing-sys/
 │   │   ├── Notification.js      # Notification model
 │   │   ├── CoAssignment.js      # Co-assignment model
 │   │   ├── ActivityLog.js       # Activity log model
+│   │   ├── Settings.js          # Settings model
 │   │   └── index.js             # Models index with associations
 │   ├── routes/
 │   │   ├── auth.js              # Authentication routes
@@ -124,7 +136,8 @@ rsud-ticketing-sys/
 │   │   ├── users.js             # User management routes
 │   │   ├── notifications.js     # Notification routes
 │   │   ├── dashboard.js         # Dashboard routes
-│   │   └── reports.js           # Report & export routes
+│   │   ├── reports.js           # Report & export routes
+│   │   └── settings.js          # Settings management routes
 │   ├── utils/
 │   │   ├── fileUpload.js        # Multer configuration
 │   │   ├── notifications.js     # Web push notification utilities
@@ -196,6 +209,8 @@ rsud-ticketing-sys/
    - Fields: id, ticketId, technicianId, requestedBy, status (pending/accepted/rejected), timestamps
 6. **activity_logs** - Activity logging
    - Fields: id, userId, action, resourceType, resourceId, details (JSONB), ipAddress, userAgent, timestamps
+7. **settings** - System settings
+   - Fields: id, key (unique), value, timestamps
 
 ## API Endpoints
 
@@ -203,6 +218,9 @@ rsud-ticketing-sys/
 
 - `POST /api/tickets` - Create ticket
 - `GET /api/tickets/track/:ticketNumber` - Track ticket
+- `GET /api/users/public/technicians/:category` - Get technicians by category (SIMRS/IPSRS)
+- `GET /api/settings/public/ipsrs-enabled` - Check if IPSRS category is enabled
+- `GET /api/health` - Health check endpoint
 
 ### Auth
 
@@ -245,6 +263,12 @@ rsud-ticketing-sys/
 - `PATCH /api/notifications/:id/read` - Mark as read
 - `PATCH /api/notifications/read-all` - Mark all as read
 - `GET /api/notifications/unread/count` - Get unread count
+
+### Settings (Admin)
+
+- `GET /api/settings` - Get all settings (admin only)
+- `PUT /api/settings/:key` - Update setting (admin only)
+- `GET /api/settings/public/ipsrs-enabled` - Get IPSRS enabled status (public)
 
 ## Security Features
 
@@ -325,6 +349,8 @@ WDS_SOCKET_HOST=0.0.0.0
 WDS_SOCKET_PORT=3000
 ```
 
+**Catatan**: `REACT_APP_API_URL` bersifat opsional. Jika tidak di-set, frontend akan auto-detect API URL berdasarkan hostname yang digunakan (localhost atau IP address).
+
 ## Development Commands
 
 ```bash
@@ -333,6 +359,9 @@ npm run install:all
 
 # Generate VAPID keys
 cd backend && npm run generate-vapid
+
+# Initialize database (run once)
+cd backend && npm run db:init
 
 # Run development (both frontend & backend)
 npm run dev

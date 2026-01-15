@@ -5,6 +5,7 @@ const TicketAction = require('./TicketAction');
 const Notification = require('./Notification');
 const ActivityLog = require('./ActivityLog');
 const CoAssignment = require('./CoAssignment');
+const Settings = require('./Settings');
 
 // Define associations
 User.hasMany(Ticket, { foreignKey: 'assignedTo', as: 'assignedTickets' });
@@ -38,6 +39,7 @@ module.exports = {
   TicketAction,
   Notification,
   ActivityLog,
-  CoAssignment
+  CoAssignment,
+  Settings
 };
 

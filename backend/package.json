@@ -7,7 +7,9 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "build": "echo 'Backend build complete'",
-    "generate-vapid": "node utils/generateVapidKeys.js"
+    "generate-vapid": "node utils/generateVapidKeys.js",
+    "db:init": "node scripts/init-db.js",
+    "db:seed": "node scripts/init-db.js"
   },
   "dependencies": {
     "express": "^4.18.2",

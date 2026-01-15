@@ -1,10 +1,42 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const { Op } = require('sequelize');
 const { User } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 const logActivity = require('../middleware/activityLogger');
 
 const router = express.Router();
+
+// Public: Get technicians by category (for public ticket tracking)
+router.get('/public/technicians/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    
+    if (!['SIMRS', 'IPSRS'].includes(category)) {
+      return res.status(400).json({ message: 'Invalid category' });
+    }
+
+    // Map category to role
+    const role = category === 'SIMRS' ? 'teknisi_simrs' : 'teknisi_ipsrs';
+
+    const technicians = await User.findAll({
+      where: {
+        role,
+        isActive: true,
+        phoneNumber: {
+          [Op.ne]: null
+        }
+      },
+      attributes: ['id', 'fullName', 'phoneNumber'],
+      order: [['fullName', 'ASC']]
+    });
+
+    res.json(technicians);
+  } catch (error) {
+    console.error('Get public technicians error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Get all users (admin only)
 router.get('/', authenticate, authorize('admin'), logActivity, async (req, res) => {

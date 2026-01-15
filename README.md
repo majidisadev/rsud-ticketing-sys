@@ -17,6 +17,7 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 - Dashboard admin dengan charts
 - Export laporan (Excel/PDF)
 - Activity logging
+- System settings management (enable/disable kategori IPSRS)
 
 ## Instalasi
 
@@ -67,9 +68,25 @@ HOST=0.0.0.0
 WDS_SOCKET_HOST=0.0.0.0
 WDS_SOCKET_PORT=3000
 REACT_APP_VAPID_PUBLIC_KEY=your_vapid_public_key_here
+REACT_APP_API_URL=http://localhost:5000/api
 ```
 
-6. Build:
+**Catatan**: `REACT_APP_API_URL` bersifat opsional. Jika tidak di-set, frontend akan auto-detect API URL berdasarkan hostname yang digunakan (localhost atau IP address). Ini memudahkan akses dari device lain di network yang sama.
+
+6. Initialize dan seed database (jalankan sekali saat pertama kali setup):
+
+```bash
+cd backend
+npm run db:init
+```
+
+Ini akan:
+
+- Membuat koneksi ke database
+- Sync semua model/tabel
+- Membuat default admin user (username: `admin`, password: `admin123`)
+
+7. Build:
    Development mode:
 
 ```bash
@@ -86,7 +103,7 @@ npm start
 
 ## Default Admin Account
 
-Setelah pertama kali menjalankan, default admin akan dibuat:
+Setelah menjalankan `npm run db:init`, default admin akan dibuat:
 
 - Username: `admin`
 - Password: `admin123`
@@ -106,8 +123,10 @@ ticketing-rsud/
 - **Backend**: Node.js, Express, PostgreSQL, Sequelize
 - **Frontend**: React, Tailwind CSS, PWA
 - **Notifications**: Web Push API
-- **Charts**: Chart.js / Recharts
+- **Charts**: Recharts
 - **Export**: ExcelJS, PDFKit
+- **UI Components**: Radix UI, Lucide React icons
+- **Styling**: Tailwind CSS, Class Variance Authority
 
 ## Features
 
@@ -118,6 +137,7 @@ ticketing-rsud/
 - Monitoring semua tiket
 - Export laporan (Excel/PDF)
 - Soft delete tiket
+- System settings management (enable/disable kategori IPSRS)
 
 ### Teknisi SIMRS/IPSRS
 
@@ -133,6 +153,7 @@ ticketing-rsud/
 
 - Form pelaporan masalah
 - Tracking tiket dengan nomor tiket
+- Form otomatis menyesuaikan dengan status kategori IPSRS (jika dinonaktifkan, opsi IPSRS tidak muncul)
 
 ## Notifications
 
@@ -180,3 +201,17 @@ Notifikasi akan muncul dan berbunyi ketika:
 - Pastikan semua dependencies terinstall
 - Check Node.js version (minimal v16)
 - Clear cache: `npm cache clean --force`
+
+### Settings tidak berfungsi
+
+- Pastikan database sudah di-initialize (`npm run db:init`)
+- Settings table akan dibuat otomatis saat pertama kali diakses
+- Jika error, cek log backend untuk detail error
+
+## System Settings
+
+Admin dapat mengatur pengaturan sistem melalui halaman User Management:
+
+- **IPSRS Enabled**: Toggle untuk mengaktifkan/menonaktifkan kategori IPSRS
+  - Jika dinonaktifkan, form pelaporan tidak akan menampilkan opsi kategori IPSRS
+  - Teknisi IPSRS tetap dapat mengakses sistem, namun tidak akan menerima tiket baru kategori IPSRS

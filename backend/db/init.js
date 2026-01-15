@@ -24,9 +24,10 @@ const initializeDatabase = async () => {
     }
 
     console.log('Database initialization complete.');
+    return true;
   } catch (error) {
     console.error('Database initialization error:', error);
-    process.exit(1);
+    throw error; // Throw error instead of process.exit
   }
 };
 

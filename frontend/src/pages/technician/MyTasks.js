@@ -22,6 +22,7 @@ const TechnicianMyTasks = () => {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const fetchTickets = async () => {

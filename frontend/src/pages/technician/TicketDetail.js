@@ -5,7 +5,6 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select } from '../../components/ui/select';
 import { ArrowLeft, Upload, Users, UserPlus, CheckCircle } from 'lucide-react';
@@ -25,6 +24,7 @@ const TicketDetail = () => {
     if (user?.role !== 'admin') {
       fetchTechnicians();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
 
   const fetchTicket = async () => {

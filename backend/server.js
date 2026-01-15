@@ -2,12 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
-const initializeDatabase = require('./db/init');
 
 const app = express();
-
-// Initialize database
-initializeDatabase();
 
 // Middleware
 // Allow CORS from localhost and any IP address
@@ -72,6 +68,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Health check
 app.get('/api/health', (req, res) => {

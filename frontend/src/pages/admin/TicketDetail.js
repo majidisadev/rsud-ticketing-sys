@@ -5,17 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Eye, ArrowLeft, Calendar, User, Phone, Building, Tag, AlertCircle } from 'lucide-react';
+import { Eye, ArrowLeft, Calendar, User, Phone, Building, Tag } from 'lucide-react';
 
 const AdminTicketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTicket();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchTicket = async () => {

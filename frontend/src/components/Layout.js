@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
 import NotificationMenu from './NotificationMenu';
-import { Menu, X, Home, FileText, Users, BarChart3, LogOut, User } from 'lucide-react';
+import { Menu, X, FileText, Users, BarChart3, LogOut, User } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const Layout = ({ children }) => {

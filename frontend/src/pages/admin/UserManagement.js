@@ -7,13 +7,15 @@ import { Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { UserPlus, Edit, Power, X } from 'lucide-react';
+import { UserPlus, Edit, Power, X, CheckCircle, XCircle } from 'lucide-react';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [ipsrsEnabled, setIpsrsEnabled] = useState(false);
+  const [togglingIpsrs, setTogglingIpsrs] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -26,7 +28,17 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchIpsrsStatus();
   }, []);
+
+  const fetchIpsrsStatus = async () => {
+    try {
+      const res = await api.get('/settings/public/ipsrs-enabled');
+      setIpsrsEnabled(res.data.ipsrsEnabled);
+    } catch (error) {
+      console.error('Fetch IPSRS status error:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -101,6 +113,20 @@ const UserManagement = () => {
     }
   };
 
+  const handleToggleIpsrs = async () => {
+    setTogglingIpsrs(true);
+    try {
+      await api.put('/settings/ipsrs_enabled', { value: !ipsrsEnabled });
+      setIpsrsEnabled(!ipsrsEnabled);
+      alert(`IPSRS telah ${!ipsrsEnabled ? 'diaktifkan' : 'dinonaktifkan'}`);
+    } catch (error) {
+      console.error('Toggle IPSRS error:', error);
+      alert(error.response?.data?.message || 'Terjadi kesalahan saat mengubah status IPSRS');
+    } finally {
+      setTogglingIpsrs(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -113,24 +139,45 @@ const UserManagement = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Manajemen User</h1>
-        <Button
-          onClick={() => {
-            setEditingUser(null);
-            setFormData({
-              username: '',
-              password: '',
-              fullName: '',
-              email: '',
-              phoneNumber: '',
-              role: 'teknisi_simrs',
-              isActive: true
-            });
-            setShowModal(true);
-          }}
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Tambah User
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleToggleIpsrs}
+            disabled={togglingIpsrs}
+            variant={ipsrsEnabled ? "default" : "outline"}
+            className={ipsrsEnabled ? "bg-green-600 hover:bg-green-700" : ""}
+            title={ipsrsEnabled ? "IPSRS Aktif - Klik untuk menonaktifkan" : "IPSRS Nonaktif - Klik untuk mengaktifkan"}
+          >
+            {ipsrsEnabled ? (
+              <CheckCircle className="w-4 h-4 mr-2" />
+            ) : (
+              <XCircle className="w-4 h-4 mr-2" />
+            )}
+            <span className="hidden sm:inline">
+              IPSRS: {ipsrsEnabled ? 'Aktif' : 'Nonaktif'}
+            </span>
+            <span className="sm:hidden">
+              {ipsrsEnabled ? 'IPSRS On' : 'IPSRS Off'}
+            </span>
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingUser(null);
+              setFormData({
+                username: '',
+                password: '',
+                fullName: '',
+                email: '',
+                phoneNumber: '',
+                role: 'teknisi_simrs',
+                isActive: true
+              });
+              setShowModal(true);
+            }}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Tambah User
+          </Button>
+        </div>
       </div>
 
       <Card>

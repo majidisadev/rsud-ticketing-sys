@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -22,6 +21,7 @@ const ActionModal = ({ ticket, onClose, onUpdate }) => {
     if (ticket) {
       fetchTicketData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket]);
 
   const fetchTicketData = async () => {

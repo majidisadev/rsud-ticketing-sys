@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../config/api';
@@ -22,6 +22,73 @@ const Home = () => {
   const [searchTicket, setSearchTicket] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedOptions, setSavedOptions] = useState({
+    reporterNames: [],
+    reporterUnits: [],
+    reporterPhones: []
+  });
+  const [ipsrsEnabled, setIpsrsEnabled] = useState(false);
+
+  // Load saved options from localStorage on mount
+  useEffect(() => {
+    const loadSavedOptions = () => {
+      try {
+        const savedNames = JSON.parse(localStorage.getItem('savedReporterNames') || '[]');
+        const savedUnits = JSON.parse(localStorage.getItem('savedReporterUnits') || '[]');
+        const savedPhones = JSON.parse(localStorage.getItem('savedReporterPhones') || '[]');
+        
+        setSavedOptions({
+          reporterNames: savedNames,
+          reporterUnits: savedUnits,
+          reporterPhones: savedPhones
+        });
+      } catch (error) {
+        console.error('Error loading saved options:', error);
+      }
+    };
+
+    loadSavedOptions();
+    fetchIpsrsStatus();
+  }, []);
+
+  const fetchIpsrsStatus = async () => {
+    try {
+      const res = await api.get('/settings/public/ipsrs-enabled');
+      setIpsrsEnabled(res.data.ipsrsEnabled);
+      // If IPSRS is disabled and currently selected, switch to SIMRS
+      if (!res.data.ipsrsEnabled && formData.category === 'IPSRS') {
+        setFormData(prev => ({ ...prev, category: 'SIMRS' }));
+      }
+    } catch (error) {
+      console.error('Fetch IPSRS status error:', error);
+    }
+  };
+
+  // Save value to localStorage
+  const saveToLocalStorage = (key, value) => {
+    if (!value || value.trim() === '') return;
+    
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || '[]');
+      const trimmedValue = value.trim();
+      
+      // Remove if exists, then add to beginning (most recent first)
+      const filtered = saved.filter(item => item !== trimmedValue);
+      const updated = [trimmedValue, ...filtered].slice(0, 10);
+      localStorage.setItem(key, JSON.stringify(updated));
+      
+      // Update state
+      if (key === 'savedReporterNames') {
+        setSavedOptions(prev => ({ ...prev, reporterNames: updated }));
+      } else if (key === 'savedReporterUnits') {
+        setSavedOptions(prev => ({ ...prev, reporterUnits: updated }));
+      } else if (key === 'savedReporterPhones') {
+        setSavedOptions(prev => ({ ...prev, reporterPhones: updated }));
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,6 +121,11 @@ const Home = () => {
       const res = await api.post('/tickets', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
+      // Save form values to localStorage after successful submission
+      saveToLocalStorage('savedReporterNames', formData.reporterName);
+      saveToLocalStorage('savedReporterUnits', formData.reporterUnit);
+      saveToLocalStorage('savedReporterPhones', formData.reporterPhone);
 
       navigate(`/track/${res.data.ticketNumber}`);
     } catch (err) {
@@ -128,36 +200,63 @@ const Home = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="reporterName">Nama Pelapor *</Label>
-                  <Input
-                    id="reporterName"
-                    name="reporterName"
-                    value={formData.reporterName}
-                    onChange={handleInputChange}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reporterName"
+                      name="reporterName"
+                      list="reporterNameOptions"
+                      value={formData.reporterName}
+                      onChange={handleInputChange}
+                      placeholder="Ketik atau pilih dari daftar"
+                      required
+                    />
+                    <datalist id="reporterNameOptions">
+                      {savedOptions.reporterNames.map((name, index) => (
+                        <option key={index} value={name} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="reporterUnit">Unit/Ruangan *</Label>
-                  <Input
-                    id="reporterUnit"
-                    name="reporterUnit"
-                    value={formData.reporterUnit}
-                    onChange={handleInputChange}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reporterUnit"
+                      name="reporterUnit"
+                      list="reporterUnitOptions"
+                      value={formData.reporterUnit}
+                      onChange={handleInputChange}
+                      placeholder="Ketik atau pilih dari daftar"
+                      required
+                    />
+                    <datalist id="reporterUnitOptions">
+                      {savedOptions.reporterUnits.map((unit, index) => (
+                        <option key={index} value={unit} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="reporterPhone">Nomor Telp/WA *</Label>
-                  <Input
-                    id="reporterPhone"
-                    name="reporterPhone"
-                    type="tel"
-                    value={formData.reporterPhone}
-                    onChange={handleInputChange}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reporterPhone"
+                      name="reporterPhone"
+                      type="tel"
+                      list="reporterPhoneOptions"
+                      value={formData.reporterPhone}
+                      onChange={handleInputChange}
+                      placeholder="Ketik atau pilih dari daftar"
+                      required
+                    />
+                    <datalist id="reporterPhoneOptions">
+                      {savedOptions.reporterPhones.map((phone, index) => (
+                        <option key={index} value={phone} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -178,21 +277,22 @@ const Home = () => {
                         SIMRS
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="category-ipsrs"
-                        name="category"
-                        value="IPSRS"
-                        checked={formData.category === 'IPSRS'}
-                        onChange={handleInputChange}
-                        disabled
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                      <Label htmlFor="category-ipsrs" className="font-normal cursor-not-allowed opacity-50">
-                        IPSRS
-                      </Label>
-                    </div>
+                    {ipsrsEnabled && (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="category-ipsrs"
+                          name="category"
+                          value="IPSRS"
+                          checked={formData.category === 'IPSRS'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <Label htmlFor="category-ipsrs" className="font-normal cursor-pointer">
+                          IPSRS
+                        </Label>
+                      </div>
+                    )}
                   </div>
                 </div>
 

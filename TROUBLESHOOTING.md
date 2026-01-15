@@ -14,52 +14,65 @@ Panduan lengkap untuk mengatasi masalah umum pada Ticketing System RSUD.
 8. [Masalah: PWA tidak bisa diinstall](#masalah-pwa-tidak-bisa-diinstall)
 9. [Masalah: Build error](#masalah-build-error)
 10. [Masalah: File upload error](#masalah-file-upload-error)
+11. [Masalah: Settings tidak berfungsi](#masalah-settings-tidak-berfungsi)
+12. [Masalah: API URL tidak terdeteksi otomatis](#masalah-api-url-tidak-terdeteksi-otomatis)
 
 ---
 
 ## Masalah: "Cannot GET /login" di localhost:5000
 
 ### Penjelasan
-Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di backend server. 
+
+Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di backend server.
 
 **Backend (localhost:5000)** hanya menyediakan:
+
 - API endpoints di `/api/*`
 - Contoh: `/api/auth/login`, `/api/tickets`, dll
 
 **Frontend (localhost:3000)** yang menangani:
+
 - Halaman web seperti `/login`, `/`, `/admin/dashboard`, dll
 
 ### Solusi
 
 1. **Akses Frontend di localhost:3000**
+
    - Buka browser dan akses: `http://localhost:3000`
    - Atau `http://localhost:3000/login` untuk halaman login
 
 2. **Backend API di localhost:5000**
    - API endpoint: `http://localhost:5000/api/auth/login` (POST request)
    - Health check: `http://localhost:5000/api/health` (GET request)
+   - Settings public: `http://localhost:5000/api/settings/public/ipsrs-enabled` (GET request)
+   - Settings public: `http://localhost:5000/api/settings/public/ipsrs-enabled` (GET request)
 
 ## Masalah: Tidak bisa login
 
 ### Checklist
 
 1. **Pastikan backend berjalan**
+
    ```bash
    cd backend
    npm start
    # atau untuk development dengan auto-reload
    npm run dev
    ```
+
    Harus muncul: "Server running on http://0.0.0.0:5000"
 
 2. **Pastikan frontend berjalan**
+
    ```bash
    cd frontend
    npm start
    ```
+
    Harus muncul: "Compiled successfully!" dan buka di browser `http://localhost:3000`
 
 3. **Cek koneksi database**
+
    - Pastikan PostgreSQL running
    - Windows: Cek di Services atau `pg_ctl status`
    - Linux/Mac: `sudo systemctl status postgresql` atau `pg_ctl status`
@@ -77,28 +90,32 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
      ```
 
 4. **Cek environment variables**
+
    - `backend/.env` harus ada dan terisi dengan semua required variables
    - `frontend/.env` harus ada dengan:
      ```
      REACT_APP_API_URL=http://localhost:5000/api
      REACT_APP_VAPID_PUBLIC_KEY=your_vapid_public_key
      ```
+   - **Catatan**: `REACT_APP_API_URL` bersifat opsional. Jika tidak di-set, frontend akan auto-detect berdasarkan hostname.
 
 5. **Cek default admin account**
+
    - Default username: `admin`
    - Default password: `admin123`
    - Pastikan admin user sudah dibuat (otomatis saat pertama kali init database)
 
 6. **Test API langsung**
+
    ```bash
    # Windows (Command Prompt atau PowerShell)
    curl http://localhost:5000/api/health
-   
+
    # Test login
    curl -X POST http://localhost:5000/api/auth/login ^
      -H "Content-Type: application/json" ^
      -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
-   
+
    # Linux/Mac
    curl http://localhost:5000/api/health
    curl -X POST http://localhost:5000/api/auth/login \
@@ -107,6 +124,7 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
    ```
 
 7. **Cek browser console**
+
    - Buka Developer Tools (F12)
    - Lihat tab Console untuk error messages
    - Lihat tab Network untuk HTTP request/response
@@ -121,16 +139,19 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Checklist
 
 1. **Cek backend berjalan**
+
    - Backend harus running di port 5000
    - Test health check: `curl http://localhost:5000/api/health`
 
 2. **Cek CORS**
+
    - Pastikan CORS di backend mengizinkan origin frontend
    - Default: `http://localhost:3000`
    - Di development mode, semua origin diizinkan
    - Cek `backend/server.js` untuk CORS configuration
 
 3. **Cek folder uploads**
+
    - Folder `backend/uploads/` harus ada
    - Jika belum ada, buat folder:
      ```bash
@@ -139,10 +160,12 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
    - Pastikan ada permission write (chmod 755 atau 777 di Linux/Mac)
 
 4. **Cek file size limit**
+
    - Max file size: 25MB
    - Jika file terlalu besar, error akan muncul
 
 5. **Cek required fields**
+
    - reporterName (required)
    - reporterUnit (required)
    - reporterPhone (required)
@@ -150,12 +173,14 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
    - description (required)
 
 6. **Cek console browser**
+
    - Buka Developer Tools (F12)
    - Lihat tab Console dan Network
    - Cari error yang muncul
    - Pastikan request ke `/api/tickets` berhasil
 
 7. **Test API langsung**
+
    ```bash
    # Windows
    curl -X POST http://localhost:5000/api/tickets ^
@@ -164,7 +189,7 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
      -F "reporterPhone=123456" ^
      -F "category=SIMRS" ^
      -F "description=Test description"
-   
+
    # Linux/Mac
    curl -X POST http://localhost:5000/api/tickets \
      -F "reporterName=Test" \
@@ -179,23 +204,25 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Pastikan PostgreSQL running**
+
    ```bash
    # Windows
    # Cek di Services (services.msc) atau
    pg_ctl status
    # Atau start service:
    pg_ctl start
-   
+
    # Linux
    sudo systemctl status postgresql
    sudo systemctl start postgresql
-   
+
    # Mac
    brew services list
    brew services start postgresql
    ```
 
 2. **Cek kredensial di backend/.env**
+
    ```
    DB_HOST=localhost
    DB_PORT=5432
@@ -203,31 +230,35 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
    DB_USER=postgres
    DB_PASSWORD=your_password
    ```
+
    - Pastikan password sesuai dengan PostgreSQL user password
    - Jika menggunakan user berbeda, sesuaikan `DB_USER`
 
 3. **Buat database jika belum ada**
+
    ```bash
    # Connect ke PostgreSQL
    psql -U postgres
-   
+
    # Atau langsung create database
    createdb -U postgres ticketing_rsud
-   
+
    # Atau via SQL
    psql -U postgres -c "CREATE DATABASE ticketing_rsud;"
    ```
 
 4. **Test koneksi manual**
+
    ```bash
    # Test connection
    psql -h localhost -U postgres -d ticketing_rsud
-   
+
    # Jika berhasil, akan masuk ke psql prompt
    # Ketik \q untuk keluar
    ```
 
 5. **Cek firewall dan network**
+
    - Pastikan port 5432 tidak di-block firewall
    - Jika PostgreSQL di remote server, pastikan remote access diizinkan
 
@@ -240,6 +271,7 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Cek CORS configuration di backend/server.js**
+
    - Di development mode, semua origin sudah diizinkan
    - Di production, sesuaikan `FRONTEND_URL` di `.env`:
      ```
@@ -247,15 +279,18 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
      ```
 
 2. **Pastikan frontend/.env ada dan benar**
+
    ```
    REACT_APP_API_URL=http://localhost:5000/api
    ```
 
 3. **Cek browser console**
+
    - Error CORS biasanya muncul di console browser
    - Pastikan request dari origin yang diizinkan
 
 4. **Clear browser cache**
+
    - Hard refresh: Ctrl+Shift+R (Windows) atau Cmd+Shift+R (Mac)
 
 5. **Jika masih error, restart kedua server**
@@ -269,13 +304,14 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Cek port yang digunakan**
+
    ```bash
    # Windows
    netstat -ano | findstr :5000
    netstat -ano | findstr :3000
    # Untuk kill process (ganti PID dengan angka dari netstat):
    taskkill /PID <PID> /F
-   
+
    # Linux/Mac
    lsof -i :5000
    lsof -i :3000
@@ -284,26 +320,30 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
    ```
 
 2. **Ubah port backend di .env**
+
    ```
    # backend/.env
    PORT=5001
    ```
 
 3. **Update frontend/.env**
+
    ```
    REACT_APP_API_URL=http://localhost:5001/api
    ```
 
 4. **Ubah port frontend (optional)**
+
    - Edit `frontend/package.json`, ubah script start:
      ```json
      "start": "PORT=3001 react-scripts start"
      ```
    - Atau set environment variable:
+
      ```bash
      # Windows
      set PORT=3001 && npm start
-     
+
      # Linux/Mac
      PORT=3001 npm start
      ```
@@ -313,31 +353,37 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Pastikan VAPID keys sudah di-set**
+
    ```bash
    # Generate VAPID keys
    cd backend
    npm run generate-vapid
    ```
+
    - Copy Public Key ke `backend/.env` (VAPID_PUBLIC_KEY)
    - Copy Private Key ke `backend/.env` (VAPID_PRIVATE_KEY)
    - Copy Public Key ke `frontend/.env` (REACT_APP_VAPID_PUBLIC_KEY)
 
 2. **Cek browser permission**
+
    - Browser harus mengizinkan notifications
    - Cek di browser settings
    - Clear permissions dan refresh halaman
 
 3. **Cek service worker**
+
    - Buka Developer Tools (F12) → Application → Service Workers
    - Pastikan service worker terdaftar dan aktif
    - Jika error, unregister dan refresh
 
 4. **Cek push subscription**
+
    - Buka Developer Tools → Application → Storage → IndexedDB
    - Pastikan ada data subscription
    - Atau cek di database: `SELECT push_subscription FROM users WHERE id = <user_id>`
 
 5. **Test notification manually**
+
    - Login sebagai teknisi
    - Buat tiket baru sesuai kategori teknisi
    - Notifikasi harus muncul dalam 30 detik (polling interval)
@@ -351,18 +397,22 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Cek manifest.json**
+
    - Pastikan file `frontend/public/manifest.json` ada dan valid
    - Cek di Developer Tools → Application → Manifest
 
 2. **Cek service worker**
+
    - Service worker harus terdaftar dan aktif
    - Build production untuk service worker berfungsi penuh
 
 3. **HTTPS requirement**
+
    - PWA installable membutuhkan HTTPS (kecuali localhost)
    - Gunakan HTTPS di production
 
 4. **Browser support**
+
    - Chrome/Edge: Full support
    - Firefox: Limited support
    - Safari iOS: Limited support (Add to Home Screen)
@@ -378,30 +428,34 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Clear cache dan node_modules**
+
    ```bash
    # Root
    npm cache clean --force
    rm -rf node_modules package-lock.json
-   
+
    # Backend
    cd backend
    rm -rf node_modules package-lock.json
-   
+
    # Frontend
    cd frontend
    rm -rf node_modules package-lock.json
-   
+
    # Reinstall
    npm run install:all
    ```
 
 2. **Cek Node.js version**
+
    - Minimal Node.js v16
+
    ```bash
    node --version
    ```
 
 3. **Cek environment variables**
+
    - Pastikan semua required variables di-set
 
 4. **Cek syntax errors**
@@ -413,46 +467,156 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 ### Solusi
 
 1. **Cek folder uploads**
+
    ```bash
    mkdir backend/uploads
    chmod 755 backend/uploads  # Linux/Mac
    ```
 
 2. **Cek file size**
+
    - Max size: 25MB
    - File terlalu besar akan error
 
 3. **Cek file type**
+
    - Hanya image files yang diizinkan
    - Format: jpg, jpeg, png, gif
 
 4. **Cek Multer configuration**
+
    - Cek `backend/utils/fileUpload.js`
    - Pastikan destination dan limits sesuai
 
 5. **Cek disk space**
    - Pastikan ada cukup space di disk
 
+## Masalah: Settings tidak berfungsi
+
+### Solusi
+
+1. **Pastikan database sudah di-initialize**
+
+   ```bash
+   cd backend
+   npm run db:init
+   ```
+
+   - Ini akan membuat semua tabel termasuk `settings`
+
+2. **Cek Settings table**
+
+   - Settings table akan dibuat otomatis saat pertama kali diakses
+   - Jika error, cek log backend untuk detail error
+   - Pastikan Sequelize sync berjalan dengan benar
+
+3. **Test Settings API**
+
+   ```bash
+   # Test public endpoint (tidak perlu auth)
+   curl http://localhost:5000/api/settings/public/ipsrs-enabled
+
+   # Test admin endpoint (perlu token)
+   curl -X GET http://localhost:5000/api/settings \
+     -H "Authorization: Bearer YOUR_TOKEN"
+   ```
+
+4. **Cek permissions**
+
+   - Settings management hanya bisa diakses oleh admin
+   - Pastikan user yang login memiliki role `admin`
+
+5. **Cek database connection**
+
+   - Pastikan PostgreSQL running
+   - Pastikan koneksi database berhasil
+
+6. **Manual create Settings table (jika perlu)**
+
+   ```sql
+   -- Connect ke database
+   psql -U postgres -d ticketing_rsud
+
+   -- Create table manually
+   CREATE TABLE IF NOT EXISTS settings (
+     id SERIAL PRIMARY KEY,
+     key VARCHAR(255) UNIQUE NOT NULL,
+     value TEXT NOT NULL,
+     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   ```
+
+## Masalah: API URL tidak terdeteksi otomatis
+
+### Penjelasan
+
+Frontend memiliki fitur auto-detection untuk API URL berdasarkan hostname. Jika diakses via IP address, akan menggunakan IP yang sama untuk backend.
+
+### Solusi
+
+1. **Gunakan environment variable**
+
+   - Set `REACT_APP_API_URL` di `frontend/.env`:
+     ```
+     REACT_APP_API_URL=http://localhost:5000/api
+     ```
+   - Atau untuk network access:
+     ```
+     REACT_APP_API_URL=http://192.168.1.100:5000/api
+     ```
+
+2. **Cek browser console**
+
+   - Buka Developer Tools (F12) → Console
+   - Lihat log API request untuk melihat URL yang digunakan
+   - Format: `🔵 API Request: { method, fullURL, hostname, ... }`
+
+3. **Pastikan backend accessible**
+
+   - Jika menggunakan IP address, pastikan backend juga listen di `0.0.0.0`
+   - Cek `backend/.env`:
+     ```
+     HOST=0.0.0.0
+     PORT=5000
+     ```
+
+4. **Test koneksi**
+
+   ```bash
+   # Test dari device lain di network yang sama
+   curl http://YOUR_IP:5000/api/health
+   ```
+
+5. **Firewall settings**
+   - Pastikan port 5000 tidak di-block firewall
+   - Windows: Allow port 5000 di Windows Firewall
+   - Linux: `sudo ufw allow 5000`
+
 ---
 
 ## Debugging Tips
 
 1. **Cek log backend**
+
    - Lihat console output saat menjalankan backend
    - Cari error messages dengan detail
 
 2. **Cek log frontend**
+
    - Buka browser Developer Tools (F12)
    - Tab Console untuk JavaScript errors
    - Tab Network untuk HTTP requests/responses
    - Tab Application untuk Storage, Service Workers, dll
 
 3. **Test API dengan Postman atau curl**
+
    - Test endpoint satu per satu
    - Pastikan request format benar
    - Cek response status dan body
 
 4. **Cek database**
+
    - Pastikan tables sudah dibuat (otomatis via Sequelize)
    - Cek data di database:
      ```sql
@@ -476,6 +640,10 @@ mkdir backend/uploads
 # Generate VAPID keys
 cd backend
 npm run generate-vapid
+
+# Initialize database (run once)
+cd backend
+npm run db:init
 
 # Clear cache dan reinstall
 npm cache clean --force
@@ -510,4 +678,3 @@ Jika masalah masih belum teratasi:
 3. Pastikan semua prerequisites terpenuhi (Node.js, PostgreSQL)
 4. Pastikan semua dependencies terinstall dengan benar
 5. Cek environment variables sudah benar semua
-
