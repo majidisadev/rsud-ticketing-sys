@@ -55,6 +55,7 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 JWT_SECRET=ticketing_rsud_secret_key_change_in_production_12345
 PORT=5000
+HOST=0.0.0.0
 NODE_ENV=development
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
@@ -112,9 +113,17 @@ Setelah menjalankan `npm run db:init`, default admin akan dibuat:
 ## Struktur Project
 
 ```
-ticketing-rsud/
+rsud-ticketing-sys/
 ├── backend/          # Express API server
+│   ├── assets/       # Static assets (logo untuk PDF)
+│   ├── models/       # Database models (Sequelize)
+│   ├── routes/       # API routes
+│   ├── middleware/   # Authentication, logging, dll
+│   ├── utils/        # Helper functions
+│   └── uploads/      # User uploaded files
 ├── frontend/         # React PWA application
+│   ├── public/       # Static files & service worker
+│   └── src/          # React source code
 └── package.json      # Root package.json untuk menjalankan kedua server
 ```
 
@@ -166,8 +175,9 @@ Notifikasi akan muncul dan berbunyi ketika:
 ## File Upload
 
 - Maksimal ukuran file: 25MB
-- Format yang didukung: Image files
+- Format yang didukung: Image files (PNG, JPG, JPEG)
 - File disimpan di `backend/uploads/`
+- Untuk logo kop surat PDF: Letakkan file `logo.png` di `backend/assets/` (lihat `backend/assets/README.md` untuk detail)
 
 ## Security
 
@@ -215,3 +225,59 @@ Admin dapat mengatur pengaturan sistem melalui halaman User Management:
 - **IPSRS Enabled**: Toggle untuk mengaktifkan/menonaktifkan kategori IPSRS
   - Jika dinonaktifkan, form pelaporan tidak akan menampilkan opsi kategori IPSRS
   - Teknisi IPSRS tetap dapat mengakses sistem, namun tidak akan menerima tiket baru kategori IPSRS
+
+## Export & Reporting
+
+### Export Excel
+- Format: .xlsx
+- Isi: Data tiket dengan semua detail (nomor, prioritas, status, lokasi, kategori, teknisi, waktu, dll)
+- Filter: Berdasarkan tanggal mulai dan tanggal akhir
+
+### Export PDF
+- Format: PDF dengan kop surat
+- Isi: Laporan tiket dengan header formal
+- Logo: Otomatis mengambil dari `backend/assets/logo.png` (jika ada)
+- Filter: Berdasarkan tanggal mulai dan tanggal akhir
+- Template: Kop surat profesional dengan informasi institusi lengkap
+
+## Development
+
+### Backend Development
+```bash
+cd backend
+npm run dev
+```
+
+Server akan berjalan di `http://localhost:5000`
+
+### Frontend Development
+```bash
+cd frontend
+npm start
+```
+
+Server akan berjalan di `http://localhost:3000`
+
+### Database Management
+```bash
+cd backend
+npm run db:init    # Initialize database dan seed admin user
+```
+
+## Production Deployment
+
+1. Build frontend:
+```bash
+cd frontend
+npm run build
+```
+
+2. Setup environment variables untuk production
+3. Jalankan backend:
+```bash
+cd backend
+npm start
+```
+
+4. Serve frontend build dengan web server (nginx, apache, atau dari backend)
+

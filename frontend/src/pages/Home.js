@@ -274,7 +274,7 @@ const Home = () => {
                         required
                       />
                       <Label htmlFor="category-simrs" className="font-normal cursor-pointer">
-                        SIMRS
+                        IT/SIMRS
                       </Label>
                     </div>
                     {ipsrsEnabled && (
@@ -352,7 +352,7 @@ const Home = () => {
                     type="text"
                     value={searchTicket}
                     onChange={(e) => setSearchTicket(e.target.value)}
-                    placeholder="Contoh: TKT-12345678-001"
+                    placeholder="Contoh: a123b456"
                   />
                 </div>
                 <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">

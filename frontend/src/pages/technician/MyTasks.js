@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../config/api';
+import api, { getBaseUrl } from '../../config/api';
 import ActionModal from '../../components/ActionModal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -8,7 +8,7 @@ import { Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Search, Eye, Plus } from 'lucide-react';
+import { Search, Eye, Plus, Download } from 'lucide-react';
 
 const TechnicianMyTasks = () => {
   const [tickets, setTickets] = useState([]);
@@ -48,6 +48,43 @@ const TechnicianMyTasks = () => {
     setShowActionModal(true);
   };
 
+  const handleExport = async (type) => {
+    try {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      
+      const token = localStorage.getItem('token');
+      const baseUrl = getBaseUrl();
+      const url = `${baseUrl}/api/reports/export/technician/${type}?${params.toString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Export failed' }));
+        throw new Error(errorData.message || 'Export failed');
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `tugas-saya.${type === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(error.message || 'Terjadi kesalahan saat export');
+    }
+  };
+
   const getStatusVariant = (status) => {
     const variants = {
       Baru: 'default',
@@ -80,7 +117,19 @@ const TechnicianMyTasks = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Tugas Saya</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Tugas Saya</h1>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button onClick={() => handleExport('excel')} variant="default" className="bg-green-600 hover:bg-green-700">
+            <Download className="w-4 h-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button onClick={() => handleExport('pdf')} variant="destructive">
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+      </div>
 
       {/* Filters */}
       <Card>

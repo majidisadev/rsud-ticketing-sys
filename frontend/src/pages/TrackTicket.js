@@ -527,7 +527,7 @@ const TrackTicket = () => {
                     ))}
                   </Select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Detail tiket akan dikirim sebagai gambar dan pesan teks ke
+                    Detail tiket akan dikirim sebagai pesan teks ke
                     nomor WhatsApp teknisi yang dipilih.
                   </p>
                 </div>

@@ -1,8 +1,15 @@
 const generateTicketNumber = () => {
-  const prefix = 'TKT';
-  const timestamp = Date.now().toString().slice(-8);
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `${prefix}-${timestamp}-${random}`;
+  // Pool karakter: angka 0-9 dan huruf lowercase a-z
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let ticketNumber = '';
+  
+  // Generate 8 karakter random
+  for (let i = 0; i < 8; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    ticketNumber += chars[randomIndex];
+  }
+  
+  return ticketNumber;
 };
 
 module.exports = { generateTicketNumber };
