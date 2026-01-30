@@ -16,7 +16,9 @@ import AdminTicketDetail from './pages/admin/TicketDetail';
 
 import TechnicianMyTasks from './pages/technician/MyTasks';
 import TechnicianAllTasks from './pages/technician/AllTasks';
+import TechnicianMyActivities from './pages/technician/MyActivities';
 import TicketDetail from './pages/technician/TicketDetail';
+import AdminAllActivities from './pages/admin/AllActivities';
 
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
@@ -37,6 +39,7 @@ function AppRoutes() {
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="tickets" element={<AllTicketsAdmin />} />
+                <Route path="all-activities" element={<AdminAllActivities />} />
                 <Route path="ticket/:id" element={<AdminTicketDetail />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
@@ -53,6 +56,7 @@ function AppRoutes() {
               <Routes>
                 <Route path="my-tasks" element={<TechnicianMyTasks />} />
                 <Route path="all-tasks" element={<TechnicianAllTasks />} />
+                <Route path="my-activities" element={<TechnicianMyActivities />} />
                 <Route path="ticket/:id" element={<TicketDetail />} />
                 <Route path="*" element={<Navigate to="/technician/my-tasks" replace />} />
               </Routes>

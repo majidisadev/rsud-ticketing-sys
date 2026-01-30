@@ -8,7 +8,7 @@ import { Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Search, Eye, Plus, Download } from 'lucide-react';
+import { Search, Eye, Plus, Download, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const TechnicianMyTasks = () => {
   const [tickets, setTickets] = useState([]);
@@ -153,7 +153,6 @@ const TechnicianMyTasks = () => {
               onChange={(e) => handleFilterChange('status', e.target.value)}
             >
               <option value="">Semua Status</option>
-              <option value="Baru">Baru</option>
               <option value="Diproses">Diproses</option>
               <option value="Selesai">Selesai</option>
               <option value="Batal">Batal</option>
@@ -161,6 +160,55 @@ const TechnicianMyTasks = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Status cards (setelah filter) - tampilan seperti Semua Aktivitas - tanpa Baru */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Diproses</p>
+                <p className="text-xl font-bold text-yellow-600">
+                  {tickets.filter((t) => t.status === 'Diproses').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Selesai</p>
+                <p className="text-xl font-bold text-green-600">
+                  {tickets.filter((t) => t.status === 'Selesai').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Batal</p>
+                <p className="text-xl font-bold text-red-600">
+                  {tickets.filter((t) => t.status === 'Batal').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Table */}
       <Card>

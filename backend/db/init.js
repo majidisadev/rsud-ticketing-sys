@@ -17,8 +17,7 @@ const initializeDatabase = async () => {
         username: 'admin',
         password: 'admin123',
         fullName: 'Administrator',
-        role: 'admin',
-        email: 'admin@rsud.local'
+        role: 'admin'
       });
       console.log('Default admin user created (username: admin, password: admin123)');
     }

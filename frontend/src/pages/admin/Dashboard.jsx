@@ -50,34 +50,6 @@ const Dashboard = () => {
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Dashboard Admin</h1>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Baru</p>
-            <p className="text-2xl font-bold text-blue-600">{stats?.statusCounts?.Baru || 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Diproses</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats?.statusCounts?.Diproses || 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Selesai</p>
-            <p className="text-2xl font-bold text-green-600">{stats?.statusCounts?.Selesai || 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">Batal</p>
-            <p className="text-2xl font-bold text-red-600">{stats?.statusCounts?.Batal || 0}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Pie Chart - Today's Issues */}

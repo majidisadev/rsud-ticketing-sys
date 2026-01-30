@@ -6,6 +6,7 @@ const Notification = require('./Notification');
 const ActivityLog = require('./ActivityLog');
 const CoAssignment = require('./CoAssignment');
 const Settings = require('./Settings');
+const TechnicianActivity = require('./TechnicianActivity');
 
 // Define associations
 User.hasMany(Ticket, { foreignKey: 'assignedTo', as: 'assignedTickets' });
@@ -32,6 +33,9 @@ CoAssignment.belongsTo(User, { foreignKey: 'assignedBy', as: 'assignedByUser' })
 User.hasMany(ActivityLog, { foreignKey: 'userId' });
 ActivityLog.belongsTo(User, { foreignKey: 'userId' });
 
+User.hasMany(TechnicianActivity, { foreignKey: 'userId', as: 'technicianActivities' });
+TechnicianActivity.belongsTo(User, { foreignKey: 'userId', as: 'technician' });
+
 module.exports = {
   sequelize,
   User,
@@ -40,6 +44,7 @@ module.exports = {
   Notification,
   ActivityLog,
   CoAssignment,
-  Settings
+  Settings,
+  TechnicianActivity
 };
 

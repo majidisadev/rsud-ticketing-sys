@@ -223,7 +223,6 @@ const TicketDetail = () => {
                     value={ticket.status}
                     onChange={(e) => handleStatusChange(e.target.value)}
                   >
-                    <option value="Baru">Baru</option>
                     <option value="Diproses">Diproses</option>
                     <option value="Selesai">Selesai</option>
                     <option value="Batal">Batal</option>

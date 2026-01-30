@@ -42,7 +42,7 @@ router.get('/public/technicians/:category', async (req, res) => {
 router.get('/', authenticate, authorize('admin'), logActivity, async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'username', 'email', 'phoneNumber', 'fullName', 'role', 'isActive', 'createdAt'],
+      attributes: ['id', 'username', 'phoneNumber', 'fullName', 'role', 'isActive', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
 
@@ -57,7 +57,7 @@ router.get('/', authenticate, authorize('admin'), logActivity, async (req, res) 
 router.get('/:id', authenticate, authorize('admin'), logActivity, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id, {
-      attributes: ['id', 'username', 'email', 'phoneNumber', 'fullName', 'role', 'isActive', 'createdAt']
+      attributes: ['id', 'username', 'phoneNumber', 'fullName', 'role', 'isActive', 'createdAt']
     });
 
     if (!user) {
@@ -77,7 +77,6 @@ router.post('/', authenticate, authorize('admin'), logActivity, [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('fullName').notEmpty().withMessage('Full name required'),
   body('role').isIn(['admin', 'teknisi_simrs', 'teknisi_ipsrs']).withMessage('Invalid role'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
   body('phoneNumber').optional()
 ], async (req, res) => {
   try {
@@ -86,7 +85,7 @@ router.post('/', authenticate, authorize('admin'), logActivity, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, password, email, phoneNumber, fullName, role } = req.body;
+    const { username, password, phoneNumber, fullName, role } = req.body;
 
     // Check if username exists
     const existingUser = await User.findOne({ where: { username } });
@@ -97,7 +96,6 @@ router.post('/', authenticate, authorize('admin'), logActivity, [
     const user = await User.create({
       username,
       password,
-      email,
       phoneNumber,
       fullName,
       role
@@ -106,7 +104,6 @@ router.post('/', authenticate, authorize('admin'), logActivity, [
     res.status(201).json({
       id: user.id,
       username: user.username,
-      email: user.email,
       phoneNumber: user.phoneNumber,
       fullName: user.fullName,
       role: user.role,
@@ -122,7 +119,6 @@ router.post('/', authenticate, authorize('admin'), logActivity, [
 router.put('/:id', authenticate, authorize('admin'), logActivity, [
   body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
   body('role').optional().isIn(['admin', 'teknisi_simrs', 'teknisi_ipsrs']).withMessage('Invalid role'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
   body('phoneNumber').optional(),
   body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], async (req, res) => {
@@ -138,10 +134,9 @@ router.put('/:id', authenticate, authorize('admin'), logActivity, [
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { fullName, email, phoneNumber, role, password, isActive } = req.body;
+    const { fullName, phoneNumber, role, password, isActive } = req.body;
 
     if (fullName) user.fullName = fullName;
-    if (email !== undefined) user.email = email;
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
     if (role) user.role = role;
     if (password) user.password = password;
@@ -152,7 +147,6 @@ router.put('/:id', authenticate, authorize('admin'), logActivity, [
     res.json({
       id: user.id,
       username: user.username,
-      email: user.email,
       phoneNumber: user.phoneNumber,
       fullName: user.fullName,
       role: user.role,
@@ -183,7 +177,7 @@ router.get('/technicians/:role', authenticate, logActivity, async (req, res) => 
         role,
         isActive: true
       },
-      attributes: ['id', 'username', 'fullName', 'email', 'phoneNumber'],
+      attributes: ['id', 'username', 'fullName', 'phoneNumber'],
       order: [['fullName', 'ASC']]
     });
 

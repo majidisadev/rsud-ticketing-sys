@@ -42,7 +42,6 @@ router.post('/login', [
       user: {
         id: user.id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role
       }
@@ -59,7 +58,6 @@ router.get('/me', authenticate, logActivity, async (req, res) => {
     user: {
       id: req.user.id,
       username: req.user.username,
-      email: req.user.email,
       fullName: req.user.fullName,
       role: req.user.role
     }

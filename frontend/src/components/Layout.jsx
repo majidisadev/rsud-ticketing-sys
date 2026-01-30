@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationMenu from './NotificationMenu';
-import { Menu, X, FileText, Users, BarChart3, LogOut, User } from 'lucide-react';
+import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const Layout = ({ children }) => {
@@ -22,12 +22,14 @@ const Layout = ({ children }) => {
   const adminMenu = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/admin/tickets', label: 'Semua Tiket', icon: FileText },
+    { path: '/admin/all-activities', label: 'Semua Aktivitas', icon: CalendarDays },
     { path: '/admin/users', label: 'Manajemen User', icon: Users }
   ];
 
   const technicianMenu = [
     { path: '/technician/my-tasks', label: 'Tugas Saya', icon: FileText },
-    { path: '/technician/all-tasks', label: 'Semua Tugas', icon: FileText }
+    { path: '/technician/all-tasks', label: 'Semua Tugas', icon: FileText },
+    { path: '/technician/my-activities', label: 'Aktivitas Saya', icon: CalendarDays }
   ];
 
   const menu = isAdmin ? adminMenu : technicianMenu;

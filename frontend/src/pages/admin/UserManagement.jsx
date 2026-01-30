@@ -20,7 +20,6 @@ const UserManagement = () => {
     username: '',
     password: '',
     fullName: '',
-    email: '',
     phoneNumber: '',
     role: 'teknisi_simrs',
     isActive: true
@@ -79,7 +78,6 @@ const UserManagement = () => {
         username: '',
         password: '',
         fullName: '',
-        email: '',
         phoneNumber: '',
         role: 'teknisi_simrs',
         isActive: true
@@ -96,7 +94,6 @@ const UserManagement = () => {
       username: user.username,
       password: '',
       fullName: user.fullName,
-      email: user.email || '',
       phoneNumber: user.phoneNumber || '',
       role: user.role,
       isActive: user.isActive
@@ -166,7 +163,6 @@ const UserManagement = () => {
                 username: '',
                 password: '',
                 fullName: '',
-                email: '',
                 phoneNumber: '',
                 role: 'teknisi_simrs',
                 isActive: true
@@ -187,7 +183,6 @@ const UserManagement = () => {
               <TableRow>
                 <TableHead>Username</TableHead>
                 <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Nomor Telepon</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
@@ -199,7 +194,6 @@ const UserManagement = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
                   <TableCell>{user.fullName}</TableCell>
-                  <TableCell>{user.email || '-'}</TableCell>
                   <TableCell>{user.phoneNumber || '-'}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell>
@@ -286,16 +280,6 @@ const UserManagement = () => {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
                   />
                 </div>
                 <div className="space-y-2">
