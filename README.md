@@ -37,7 +37,7 @@ npm run generate-vapid
 Copy output Public Key dan Private Key ke:
 
 - `backend/.env` (VAPID_PUBLIC_KEY dan VAPID_PRIVATE_KEY)
-- `frontend/.env` (REACT_APP_VAPID_PUBLIC_KEY)
+- `frontend/.env` (VITE_VAPID_PUBLIC_KEY)
 
 3. Buat database PostgreSQL:
 
@@ -65,14 +65,11 @@ VAPID_SUBJECT=mailto:admin@rsud.local
 5. Buat file `.env` di folder `frontend`:
 
 ```
-HOST=0.0.0.0
-WDS_SOCKET_HOST=0.0.0.0
-WDS_SOCKET_PORT=3000
-REACT_APP_VAPID_PUBLIC_KEY=your_vapid_public_key_here
-REACT_APP_API_URL=http://localhost:5000/api
+VITE_VAPID_PUBLIC_KEY=your_vapid_public_key_here
+VITE_API_URL=http://localhost:5000/api
 ```
 
-**Catatan**: `REACT_APP_API_URL` bersifat opsional. Jika tidak di-set, frontend akan auto-detect API URL berdasarkan hostname yang digunakan (localhost atau IP address). Ini memudahkan akses dari device lain di network yang sama.
+**Catatan**: `VITE_API_URL` bersifat opsional. Frontend menggunakan Vite; variabel env harus berprefix `VITE_`. Jika tidak di-set, frontend akan auto-detect API URL berdasarkan hostname yang digunakan (localhost atau IP address). Ini memudahkan akses dari device lain di network yang sama.
 
 6. Initialize dan seed database (jalankan sekali saat pertama kali setup):
 

@@ -334,18 +334,13 @@ Error ini terjadi karena Anda mencoba mengakses halaman frontend (`/login`) di b
 
 4. **Ubah port frontend (optional)**
 
-   - Edit `frontend/package.json`, ubah script start:
-     ```json
-     "start": "PORT=3001 react-scripts start"
+   - Edit `frontend/vite.config.js`, ubah `server.port`:
+     ```js
+     server: { host: '0.0.0.0', port: 3001 }
      ```
-   - Atau set environment variable:
-
+   - Atau jalankan dengan flag:
      ```bash
-     # Windows
-     set PORT=3001 && npm start
-
-     # Linux/Mac
-     PORT=3001 npm start
+     npm start -- --port 3001
      ```
 
 ## Masalah: Push notifications tidak muncul

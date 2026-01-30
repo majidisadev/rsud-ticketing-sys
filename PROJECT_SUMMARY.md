@@ -21,6 +21,7 @@ Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React
 
 ### Frontend
 
+- **Vite** sebagai build tool (menggantikan Create React App)
 - **React 18** dengan React Router v6
 - **Tailwind CSS** untuk styling
 - **Recharts** untuk charts dan visualisasi data

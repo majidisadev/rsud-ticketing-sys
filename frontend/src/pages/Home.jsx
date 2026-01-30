@@ -156,7 +156,7 @@ const Home = () => {
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex justify-center items-center mb-4">
             <img 
-              src={`${process.env.PUBLIC_URL}/logo192.png`} 
+              src={`${import.meta.env.BASE_URL}logo192.png`} 
               alt="RSUD Logo" 
               className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 object-contain"
             />

@@ -56,7 +56,7 @@ const Login = () => {
         <CardHeader>
           <div className="flex justify-center mb-4">
             <img 
-              src={`${process.env.PUBLIC_URL}/logo192.png`} 
+              src={`${import.meta.env.BASE_URL}logo192.png`} 
               alt="RSUD Logo" 
               className="h-16 w-16 object-contain"
             />

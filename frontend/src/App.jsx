@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 // Public pages
 import Home from './pages/Home';
@@ -67,9 +66,6 @@ function AppRoutes() {
 
 function App() {
   useEffect(() => {
-    // Register service worker
-    serviceWorkerRegistration.register();
-    
     // Request notification permission and setup push subscription
     if ('Notification' in window && 'serviceWorker' in navigator) {
       if (Notification.permission === 'default') {
@@ -82,7 +78,7 @@ function App() {
           const subscription = await registration.pushManager.getSubscription();
           if (!subscription && Notification.permission === 'granted') {
             // Subscribe to push notifications
-            const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+            const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
             if (vapidPublicKey) {
               const newSubscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,

@@ -5,8 +5,8 @@ import axios from 'axios';
 // If accessed via localhost, use localhost
 const getApiUrl = () => {
   // Use environment variable if set
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   
   // Get current hostname (could be localhost or IP address)
@@ -20,8 +20,8 @@ const getApiUrl = () => {
 
 // Helper to get base URL without /api suffix (for images, etc)
 export const getBaseUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL.replace('/api', '');
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace('/api', '');
   }
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
@@ -83,7 +83,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Log error details for debugging
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('API Error:', {
         message: error.message,
         code: error.code,

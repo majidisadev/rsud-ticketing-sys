@@ -52,7 +52,7 @@ const Layout = ({ children }) => {
               </button>
               <Link to="/" className="flex items-center gap-2 ml-2 lg:ml-0">
                 <img 
-                  src={`${process.env.PUBLIC_URL}/logo192.png`} 
+                  src={`${import.meta.env.BASE_URL}logo192.png`} 
                   alt="RSUD Logo" 
                   className="h-8 w-8 object-contain"
                 />
