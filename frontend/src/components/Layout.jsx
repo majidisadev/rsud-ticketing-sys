@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationMenu from './NotificationMenu';
-import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays } from 'lucide-react';
+import ChangePasswordDialog from './ChangePasswordDialog';
+import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays, KeyRound } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const Layout = ({ children }) => {
@@ -10,6 +11,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -102,6 +104,15 @@ const Layout = ({ children }) => {
                     <div className="px-3 py-2 text-sm text-gray-700 border-b border-gray-100">
                       <p className="font-medium">{user?.fullName}</p>
                     </div>
+                    {isTechnician && (
+                      <button
+                        onClick={() => setChangePasswordOpen(true)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                        Ganti Password
+                      </button>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -143,6 +154,15 @@ const Layout = ({ children }) => {
                 <div className="px-4 py-2 text-sm text-gray-600">
                   {user?.fullName}
                 </div>
+                {isTechnician && (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); setChangePasswordOpen(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <KeyRound className="w-5 h-5" />
+                    Ganti Password
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50"
@@ -160,6 +180,8 @@ const Layout = ({ children }) => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
+
+      <ChangePasswordDialog open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
     </div>
   );
 };

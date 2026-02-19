@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { createTimeline, set } from 'animejs';
 import api, { getBaseUrl } from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
+import { useAdminPageAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select } from '../../components/ui/select';
-import { ArrowLeft, Upload, Users, UserPlus, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Users, UserPlus, CheckCircle, Ticket, FileText, Image } from 'lucide-react';
 
 const TicketDetail = () => {
   const { id } = useParams();
@@ -18,6 +20,27 @@ const TicketDetail = () => {
   const [technicians, setTechnicians] = useState([]);
   const [showCoAssignModal, setShowCoAssignModal] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState('');
+
+  const containerRef = useRef(null);
+  const leftColRef = useRef(null);
+  const rightColRef = useRef(null);
+  const actionsRef = useRef(null);
+  const modalRef = useRef(null);
+
+  useAdminPageAnimation({
+    containerRef,
+    cardRefs: [leftColRef, rightColRef, actionsRef],
+    enabled: !loading && !!ticket
+  });
+
+  useEffect(() => {
+    if (!showCoAssignModal || prefersReducedMotion()) return;
+    const el = modalRef?.current;
+    if (!el) return;
+    set(el, { opacity: 0, scale: 0.96 });
+    const tl = createTimeline({ defaults: { ease: 'outExpo', duration: 200 } });
+    tl.add(el, { opacity: { to: 1 }, scale: { to: 1 }, duration: 220 });
+  }, [showCoAssignModal]);
 
   useEffect(() => {
     fetchTicket();
@@ -156,60 +179,85 @@ const TicketDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div
+        className="flex items-center justify-center min-h-[60vh]"
+        role="status"
+        aria-live="polite"
+        aria-label="Memuat detail tiket"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-200 border-t-blue-600" />
+          <p className="text-sm text-gray-500">Memuat detail tiket...</p>
+        </div>
       </div>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">Tiket tidak ditemukan</p>
-        <Button onClick={() => navigate(-1)} variant="outline" className="mt-4">
+      <main className="text-center py-12 px-4" aria-live="polite">
+        <p className="text-gray-600 mb-4">Tiket tidak ditemukan.</p>
+        <Button
+          onClick={() => navigate(-1)}
+          variant="outline"
+          className="mt-4"
+          aria-label="Kembali ke halaman sebelumnya"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" aria-hidden />
           Kembali
         </Button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <main ref={containerRef} className="space-y-4 sm:space-y-6" aria-labelledby="ticket-detail-title">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Button
               onClick={() => navigate(-1)}
               variant="ghost"
               size="icon"
+              aria-label="Kembali ke halaman sebelumnya"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" aria-hidden />
             </Button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Detail Tiket</h1>
+            <h1 id="ticket-detail-title" className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <Ticket className="w-6 h-6 text-blue-600" aria-hidden />
+              Detail Tiket
+            </h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600 ml-11">{ticket.ticketNumber}</p>
+          <p className="text-sm sm:text-base text-gray-600 ml-11 font-mono">{ticket.ticketNumber}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {canTake && (
-            <Button onClick={handleTakeTicket} className="bg-green-600 hover:bg-green-700">
-              <CheckCircle className="w-4 h-4 mr-2" />
+            <Button
+              onClick={handleTakeTicket}
+              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+              aria-label="Ambil tiket ini"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" aria-hidden />
               Ambil Tiket
             </Button>
           )}
           {!canEdit && canView && (ticket.status === 'Baru' || isTakenByOther) && (
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="text-sm" aria-label="Hanya tampilan">
               View Only
             </Badge>
           )}
         </div>
-      </div>
+      </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Column */}
-        <div className="space-y-4 sm:space-y-6">
-          <Card>
+        <div ref={leftColRef} className="space-y-4 sm:space-y-6">
+          <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
-              <CardTitle className="text-lg">Informasi Tiket</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-gray-500" aria-hidden />
+                Informasi Tiket
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -264,9 +312,12 @@ const TicketDetail = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
-              <CardTitle className="text-lg">Informasi Pelapor</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gray-500" aria-hidden />
+                Informasi Pelapor
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -290,8 +341,8 @@ const TicketDetail = () => {
         </div>
 
         {/* Right Column */}
-        <div className="space-y-4 sm:space-y-6">
-          <Card>
+        <div ref={rightColRef} className="space-y-4 sm:space-y-6">
+          <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Deskripsi Masalah</CardTitle>
             </CardHeader>
@@ -301,14 +352,17 @@ const TicketDetail = () => {
           </Card>
 
           {ticket.photoUrl && (
-            <Card>
+            <Card className="transition-shadow duration-200 hover:shadow-md overflow-hidden">
               <CardHeader>
-                <CardTitle className="text-lg">Foto Masalah</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Image className="w-5 h-5 text-gray-500" aria-hidden />
+                  Foto Masalah
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <img
                   src={`${getBaseUrl()}${ticket.photoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Foto masalah"
+                  alt="Foto lampiran masalah dari pelapor"
                   className="w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
                     e.target.src = '/placeholder-image.png';
@@ -319,7 +373,7 @@ const TicketDetail = () => {
             </Card>
           )}
 
-          <Card>
+          <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Bukti Perbaikan</CardTitle>
             </CardHeader>
@@ -327,7 +381,7 @@ const TicketDetail = () => {
               {ticket.proofPhotoUrl ? (
                 <img
                   src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Bukti perbaikan"
+                  alt="Foto bukti perbaikan yang diupload"
                   className="w-full h-auto rounded-lg border border-gray-200 mb-2"
                   onError={(e) => {
                     e.target.src = '/placeholder-image.png';
@@ -346,12 +400,13 @@ const TicketDetail = () => {
                     onChange={handleProofUpload}
                     className="hidden"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     type="button"
                     onClick={() => document.getElementById('proof-upload')?.click()}
+                    aria-label="Pilih file untuk upload bukti perbaikan"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
+                    <Upload className="w-4 h-4 mr-2" aria-hidden />
                     Upload Bukti
                   </Button>
                 </div>
@@ -379,22 +434,23 @@ const TicketDetail = () => {
         </div>
       </div>
 
-      {/* Tindakan Section - Show for all tickets, but only editable if canEdit */}
-      <div className="space-y-4 sm:space-y-6">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">Tindakan</CardTitle>
+      {/* Tindakan Section */}
+      <section ref={actionsRef} className="space-y-4 sm:space-y-6" aria-labelledby="tindakan-heading">
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <CardTitle id="tindakan-heading" className="text-lg">Tindakan</CardTitle>
           {canEdit && ticket.assignedTo === user.id && technicians.length > 0 && (
             <Button
               onClick={() => setShowCoAssignModal(true)}
               variant="default"
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+              aria-label="Minta bantuan teknisi lain (co-assign)"
             >
-              <UserPlus className="w-4 h-4 mr-2" />
+              <UserPlus className="w-4 h-4 mr-2" aria-hidden />
               Minta Bantuan
             </Button>
           )}
         </div>
-        <Card>
+        <Card className="transition-shadow duration-200 hover:shadow-md">
           <CardContent className="pt-6">
             <div className="space-y-4">
               {ticket.actions && ticket.actions.length > 0 ? (
@@ -413,23 +469,33 @@ const TicketDetail = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Co-Assign Modal */}
       {showCoAssignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="co-assign-title"
+          aria-describedby="co-assign-desc"
+        >
+          <Card ref={modalRef} className="max-w-md w-full shadow-xl transition-all duration-200 ease-out">
             <CardHeader>
-              <CardTitle>Minta Bantuan</CardTitle>
+              <CardTitle id="co-assign-title">Minta Bantuan</CardTitle>
             </CardHeader>
             <CardContent>
+              <p id="co-assign-desc" className="text-sm text-gray-500 mb-4">
+                Pilih teknisi untuk diajak menangani tiket ini.
+              </p>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="technician">Pilih Teknisi</Label>
+                  <Label htmlFor="co-assign-technician">Pilih Teknisi</Label>
                   <Select
-                    id="technician"
+                    id="co-assign-technician"
                     value={selectedTechnician}
                     onChange={(e) => setSelectedTechnician(e.target.value)}
+                    aria-label="Pilih teknisi untuk co-assign"
                   >
                     <option value="">Pilih Teknisi</option>
                     {technicians
@@ -446,6 +512,7 @@ const TicketDetail = () => {
                     onClick={handleCoAssign}
                     disabled={!selectedTechnician}
                     className="flex-1 bg-green-600 hover:bg-green-700"
+                    aria-label="Assign teknisi yang dipilih"
                   >
                     Assign
                   </Button>
@@ -456,6 +523,7 @@ const TicketDetail = () => {
                     }}
                     variant="outline"
                     className="flex-1"
+                    aria-label="Batal dan tutup"
                   >
                     Batal
                   </Button>
@@ -465,7 +533,7 @@ const TicketDetail = () => {
           </Card>
         </div>
       )}
-    </div>
+    </main>
   );
 };
 

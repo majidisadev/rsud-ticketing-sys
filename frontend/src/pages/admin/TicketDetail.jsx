@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { getBaseUrl } from '../../config/api';
-import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Eye, ArrowLeft, Calendar, User, Phone, Building, Tag } from 'lucide-react';
+import { useAdminPageAnimation } from '../../hooks/useAdminPageAnimation';
 
 const AdminTicketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const containerRef = useRef(null);
+  const viewOnlyCardRef = useRef(null);
+  const infoCardRef = useRef(null);
+  const reporterCardRef = useRef(null);
+  const descCardRef = useRef(null);
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,58 +53,62 @@ const AdminTicketDetail = () => {
     return variants[priority] || 'secondary';
   };
 
+  useAdminPageAnimation({
+    containerRef,
+    cardRefs: [viewOnlyCardRef, infoCardRef, reporterCardRef, descCardRef],
+    enabled: !!ticket && !loading
+  });
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4" role="status" aria-live="polite" aria-label="Memuat detail tiket">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-200 border-t-blue-600" aria-hidden="true" />
+        <p className="text-sm text-gray-600">Memuat detail tiket…</p>
       </div>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">Tiket tidak ditemukan</p>
-        <Button onClick={() => navigate(-1)} variant="outline" className="mt-4">
+      <main className="text-center py-12" aria-label="Tiket tidak ditemukan">
+        <p className="text-gray-600 mb-4">Tiket tidak ditemukan</p>
+        <Button onClick={() => navigate(-1)} variant="outline" aria-label="Kembali ke halaman sebelumnya">
           Kembali
         </Button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <main ref={containerRef} className="space-y-5 sm:space-y-6" aria-label={`Detail tiket ${ticket.ticketNumber}`}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Button
               onClick={() => navigate(-1)}
               variant="ghost"
               size="icon"
+              aria-label="Kembali ke daftar tiket"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" aria-hidden />
             </Button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Detail Tiket</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Detail Tiket</h1>
           </div>
           <p className="text-sm sm:text-base text-gray-600 ml-11">{ticket.ticketNumber}</p>
         </div>
-        <div className="flex items-center gap-2 ml-11 sm:ml-0">
-          <Badge variant={getStatusVariant(ticket.status)}>
-            {ticket.status}
-          </Badge>
+        <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
+          <Badge variant={getStatusVariant(ticket.status)}>{ticket.status}</Badge>
           {ticket.priority && (
-            <Badge variant={getPriorityVariant(ticket.priority)}>
-              {ticket.priority}
-            </Badge>
+            <Badge variant={getPriorityVariant(ticket.priority)}>{ticket.priority}</Badge>
           )}
         </div>
-      </div>
+      </header>
 
       {/* View Only Badge */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card ref={viewOnlyCardRef} className="bg-blue-50/80 border-blue-200 shadow-sm">
         <CardContent className="p-4 flex items-start gap-3">
-          <Eye className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <Eye className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" aria-hidden />
           <div>
             <p className="text-sm font-medium text-blue-900">Mode View Only</p>
             <p className="text-xs text-blue-700 mt-1">Sebagai admin, Anda hanya dapat melihat detail tiket. Tidak dapat mengubah status, prioritas, atau menambahkan tindakan.</p>
@@ -111,7 +120,7 @@ const AdminTicketDetail = () => {
         {/* Left Column */}
         <div className="space-y-4 sm:space-y-6">
           {/* Basic Info Card */}
-          <Card>
+          <Card ref={infoCardRef} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Informasi Tiket</CardTitle>
             </CardHeader>
@@ -148,7 +157,7 @@ const AdminTicketDetail = () => {
           </Card>
 
           {/* Reporter Info Card */}
-          <Card>
+          <Card ref={reporterCardRef} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Informasi Pelapor</CardTitle>
             </CardHeader>
@@ -181,7 +190,7 @@ const AdminTicketDetail = () => {
         {/* Right Column */}
         <div className="space-y-4 sm:space-y-6">
           {/* Description Card */}
-          <Card>
+          <Card ref={descCardRef} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Deskripsi Masalah</CardTitle>
             </CardHeader>
@@ -192,14 +201,14 @@ const AdminTicketDetail = () => {
 
           {/* Photos */}
           {ticket.photoUrl && (
-            <Card>
+            <Card className="shadow-sm border-gray-200/80 overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-lg">Foto Masalah</CardTitle>
               </CardHeader>
               <CardContent>
                 <img
                   src={`${getBaseUrl()}${ticket.photoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Foto masalah"
+                  alt="Foto masalah yang dilaporkan"
                   className="w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
                     e.target.src = '/placeholder-image.png';
@@ -211,14 +220,14 @@ const AdminTicketDetail = () => {
           )}
 
           {ticket.proofPhotoUrl && (
-            <Card>
+            <Card className="shadow-sm border-gray-200/80 overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-lg">Bukti Perbaikan</CardTitle>
               </CardHeader>
               <CardContent>
                 <img
                   src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Bukti perbaikan"
+                  alt="Bukti foto perbaikan"
                   className="w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
                     e.target.src = '/placeholder-image.png';
@@ -252,14 +261,14 @@ const AdminTicketDetail = () => {
 
       {/* Actions History */}
       {ticket.actions && ticket.actions.length > 0 && (
-        <Card>
+        <Card className="shadow-sm border-gray-200/80">
           <CardHeader>
             <CardTitle className="text-lg">Riwayat Tindakan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <ul className="space-y-4" aria-label="Riwayat tindakan">
               {ticket.actions.map((action) => (
-                <div key={action.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                <li key={action.id} className="border-l-4 border-blue-500 pl-4 py-2">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 capitalize">{action.actionType.replace('-', ' ')}</p>
@@ -271,13 +280,13 @@ const AdminTicketDetail = () => {
                       </p>
                     </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </CardContent>
         </Card>
       )}
-    </div>
+    </main>
   );
 };
 

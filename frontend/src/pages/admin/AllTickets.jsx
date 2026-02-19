@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../../config/api';
 import { Button } from '../../components/ui/button';
@@ -8,8 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Download, Search, Trash2, Eye, Inbox, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useAdminPageAnimation';
 
 const AllTicketsAdmin = () => {
+  const containerRef = useRef(null);
+  const filterCardRef = useRef(null);
+  const statCard1Ref = useRef(null);
+  const statCard2Ref = useRef(null);
+  const statCard3Ref = useRef(null);
+  const statCard4Ref = useRef(null);
+  const tableCardRef = useRef(null);
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -97,6 +106,13 @@ const AllTicketsAdmin = () => {
     }
   };
 
+  useAdminPageAnimation({
+    containerRef,
+    cardRefs: [filterCardRef, statCard1Ref, statCard2Ref, statCard3Ref, statCard4Ref, tableCardRef],
+    enabled: !loading
+  });
+  useStaggerListAnimation(tableCardRef, 'tr[data-ticket-row]', !loading && tickets.length > 0);
+
   const getStatusVariant = (status) => {
     const variants = {
       Baru: 'default',
@@ -109,48 +125,55 @@ const AllTicketsAdmin = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4" role="status" aria-live="polite" aria-label="Memuat tiket">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-200 border-t-blue-600" aria-hidden="true" />
+        <p className="text-sm text-gray-600">Memuat data tiket…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Semua Tiket</h1>
+    <main ref={containerRef} className="space-y-5 sm:space-y-6" aria-label="Halaman semua tiket">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Semua Tiket</h1>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button onClick={() => handleExport('excel')} variant="default" className="bg-green-600 hover:bg-green-700">
-            <Download className="w-4 h-4 mr-2" />
+          <Button onClick={() => handleExport('excel')} variant="default" className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500" aria-label="Export ke Excel">
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export Excel
           </Button>
-          <Button onClick={() => handleExport('pdf')} variant="destructive">
-            <Download className="w-4 h-4 mr-2" />
+          <Button onClick={() => handleExport('pdf')} variant="destructive" aria-label="Export ke PDF">
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export PDF
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Filters */}
-      <Card>
+      <Card ref={filterCardRef} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
         <CardHeader>
-          <CardTitle className="text-lg">Filter</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Search className="w-5 h-5 text-gray-500" aria-hidden />
+            Filter
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
               <Input
-                type="text"
+                type="search"
                 placeholder="Cari nomor tiket, pelapor, unit..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="pl-10"
+                aria-label="Cari nomor tiket, pelapor, atau unit"
+                autoComplete="off"
               />
             </div>
             <Select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
+              aria-label="Filter status"
             >
               <option value="">Semua Status</option>
               <option value="Baru">Baru</option>
@@ -161,6 +184,7 @@ const AllTicketsAdmin = () => {
             <Select
               value={filters.category}
               onChange={(e) => handleFilterChange('category', e.target.value)}
+              aria-label="Filter kategori"
             >
               <option value="">Semua Kategori</option>
               <option value="SIMRS">SIMRS</option>
@@ -168,21 +192,26 @@ const AllTicketsAdmin = () => {
             </Select>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label htmlFor="date-from-tickets" className="sr-only">Dari Tanggal</label>
             <Input
+              id="date-from-tickets"
               type="date"
               value={filters.dateFrom}
               onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-              placeholder="Dari Tanggal"
+              aria-label="Dari tanggal"
             />
+            <label htmlFor="date-to-tickets" className="sr-only">Sampai Tanggal</label>
             <Input
+              id="date-to-tickets"
               type="date"
               value={filters.dateTo}
               onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-              placeholder="Sampai Tanggal"
+              aria-label="Sampai tanggal"
             />
             <Select
               value={filters.priority}
               onChange={(e) => handleFilterChange('priority', e.target.value)}
+              aria-label="Filter prioritas"
             >
               <option value="">Semua Prioritas</option>
               <option value="tinggi">Tinggi</option>
@@ -193,96 +222,96 @@ const AllTicketsAdmin = () => {
         </CardContent>
       </Card>
 
-      {/* Status cards (setelah filter) - tampilan seperti Semua Aktivitas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Status cards */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="Ringkasan status tiket">
+        <Card ref={statCard1Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Inbox className="w-5 h-5 text-blue-600" />
+              <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600" aria-hidden>
+                <Inbox className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Baru</p>
-                <p className="text-xl font-bold text-blue-600">
+                <p className="text-sm text-gray-500 font-medium">Baru</p>
+                <p className="text-xl font-bold text-blue-600 tabular-nums">
                   {tickets.filter((t) => t.status === 'Baru').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={statCard2Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600" aria-hidden>
+                <Clock className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Diproses</p>
-                <p className="text-xl font-bold text-yellow-600">
+                <p className="text-sm text-gray-500 font-medium">Diproses</p>
+                <p className="text-xl font-bold text-amber-600 tabular-nums">
                   {tickets.filter((t) => t.status === 'Diproses').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={statCard3Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600" aria-hidden>
+                <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Selesai</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-sm text-gray-500 font-medium">Selesai</p>
+                <p className="text-xl font-bold text-emerald-600 tabular-nums">
                   {tickets.filter((t) => t.status === 'Selesai').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={statCard4Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
+              <div className="p-2.5 bg-red-50 rounded-xl text-red-600" aria-hidden>
+                <XCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Batal</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-sm text-gray-500 font-medium">Batal</p>
+                <p className="text-xl font-bold text-red-600 tabular-nums">
                   {tickets.filter((t) => t.status === 'Batal').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Table */}
-      <Card>
+      <Card ref={tableCardRef} className="shadow-sm border-gray-200/80 overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Kategori</TableHead>
-                <TableHead>Nomor Tiket</TableHead>
-                <TableHead>Tanggal Masuk</TableHead>
-                <TableHead>Pelapor</TableHead>
-                <TableHead>Teknisi</TableHead>
-                <TableHead>Prioritas</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Aksi</TableHead>
+                <TableHead scope="col">Kategori</TableHead>
+                <TableHead scope="col">Nomor Tiket</TableHead>
+                <TableHead scope="col">Tanggal Masuk</TableHead>
+                <TableHead scope="col">Pelapor</TableHead>
+                <TableHead scope="col">Teknisi</TableHead>
+                <TableHead scope="col">Prioritas</TableHead>
+                <TableHead scope="col">Status</TableHead>
+                <TableHead scope="col">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="8" className="text-center py-8 text-gray-500">
+                  <TableCell colSpan="8" className="text-center py-10 text-gray-500">
                     Tidak ada tiket
                   </TableCell>
                 </TableRow>
               ) : (
                 tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
+                  <TableRow key={ticket.id} data-ticket-row>
                     <TableCell className="font-medium">{ticket.category}</TableCell>
                     <TableCell>{ticket.ticketNumber}</TableCell>
                     <TableCell>
@@ -306,18 +335,19 @@ const AllTicketsAdmin = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link to={`/admin/ticket/${ticket.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
+                        <Link to={`/admin/ticket/${ticket.id}`} aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
+                          <Button variant="ghost" size="sm" aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
+                            <Eye className="w-4 h-4" aria-hidden />
                           </Button>
                         </Link>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(ticket.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 focus-visible:ring-red-500"
+                          aria-label={`Hapus tiket ${ticket.ticketNumber}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden />
                         </Button>
                       </div>
                     </TableCell>
@@ -330,26 +360,28 @@ const AllTicketsAdmin = () => {
       </Card>
 
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-2">
+      <nav className="flex justify-center items-center gap-2" aria-label="Navigasi halaman tiket">
         <Button
           onClick={() => setPage(p => Math.max(1, p - 1))}
           disabled={page === 1}
           variant="outline"
+          aria-label="Halaman sebelumnya"
         >
-          Previous
+          Sebelumnya
         </Button>
-        <span className="px-4 py-2 text-sm">
-          Page {page} of {totalPages}
+        <span className="px-4 py-2 text-sm text-gray-600" role="status">
+          Halaman <strong>{page}</strong> dari {totalPages}
         </span>
         <Button
           onClick={() => setPage(p => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
           variant="outline"
+          aria-label="Halaman berikutnya"
         >
-          Next
+          Selanjutnya
         </Button>
-      </div>
-    </div>
+      </nav>
+    </main>
   );
 };
 

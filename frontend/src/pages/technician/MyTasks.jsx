@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../../config/api';
 import ActionModal from '../../components/ActionModal';
+import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useAdminPageAnimation';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Search, Eye, Plus, Download, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Label } from '../../components/ui/label';
+import { Search, Eye, Plus, Download, Clock, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
 
 const TechnicianMyTasks = () => {
   const [tickets, setTickets] = useState([]);
@@ -19,6 +21,13 @@ const TechnicianMyTasks = () => {
     search: '',
     status: ''
   });
+
+  const containerRef = useRef(null);
+  const cardStatRefs = [useRef(null), useRef(null), useRef(null)];
+  const tableBodyRef = useRef(null);
+
+  useAdminPageAnimation({ containerRef, cardRefs: cardStatRefs, enabled: !loading });
+  useStaggerListAnimation(tableBodyRef, 'tr', !loading && tickets.length > 0);
 
   useEffect(() => {
     fetchTickets();
@@ -109,126 +118,158 @@ const TechnicianMyTasks = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div
+        className="flex items-center justify-center min-h-[60vh]"
+        role="status"
+        aria-live="polite"
+        aria-label="Memuat tugas saya"
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-green-200 border-t-green-600" />
+          <p className="text-sm text-gray-500">Memuat tugas saya...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Tugas Saya</h1>
+    <main ref={containerRef} className="space-y-4 sm:space-y-6" aria-labelledby="my-tasks-title">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 id="my-tasks-title" className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <ClipboardList className="w-7 h-7 text-green-600" aria-hidden />
+            Tugas Saya
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Tiket yang Anda tangani</p>
+        </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button onClick={() => handleExport('excel')} variant="default" className="bg-green-600 hover:bg-green-700">
-            <Download className="w-4 h-4 mr-2" />
+          <Button
+            onClick={() => handleExport('excel')}
+            variant="default"
+            className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+            aria-label="Export daftar tugas ke Excel"
+          >
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export Excel
           </Button>
-          <Button onClick={() => handleExport('pdf')} variant="destructive">
-            <Download className="w-4 h-4 mr-2" />
+          <Button
+            onClick={() => handleExport('pdf')}
+            variant="destructive"
+            aria-label="Export daftar tugas ke PDF"
+          >
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export PDF
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Filters */}
-      <Card>
+      <Card className="transition-shadow duration-200 hover:shadow-md">
         <CardHeader>
-          <CardTitle className="text-lg">Filter</CardTitle>
+          <CardTitle className="text-lg" id="my-tasks-filter-heading">Filter</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent aria-labelledby="my-tasks-filter-heading">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Label htmlFor="my-tasks-search" className="sr-only">Cari</Label>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
               <Input
-                type="text"
+                id="my-tasks-search"
+                type="search"
                 placeholder="Cari nomor tiket, pelapor, unit/ruangan..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="pl-10"
+                aria-label="Cari nomor tiket, pelapor, atau unit"
+                autoComplete="off"
               />
             </div>
-            <Select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="">Semua Status</option>
-              <option value="Diproses">Diproses</option>
-              <option value="Selesai">Selesai</option>
-              <option value="Batal">Batal</option>
-            </Select>
+            <div>
+              <Label htmlFor="my-tasks-status" className="sr-only">Status</Label>
+              <Select
+                id="my-tasks-status"
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                aria-label="Filter berdasarkan status"
+              >
+                <option value="">Semua Status</option>
+                <option value="Diproses">Diproses</option>
+                <option value="Selesai">Selesai</option>
+                <option value="Batal">Batal</option>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Status cards (setelah filter) - tampilan seperti Semua Aktivitas - tanpa Baru */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+      {/* Status cards */}
+      <section aria-label="Ringkasan status tugas" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card ref={cardStatRefs[0]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-amber-500">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2 bg-amber-100 rounded-xl" aria-hidden>
+                <Clock className="w-5 h-5 text-amber-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Diproses</p>
-                <p className="text-xl font-bold text-yellow-600">
+                <p className="text-xl font-bold text-amber-600" aria-live="polite">
                   {tickets.filter((t) => t.status === 'Diproses').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={cardStatRefs[1]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-green-500">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
+              <div className="p-2 bg-green-100 rounded-xl" aria-hidden>
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Selesai</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-xl font-bold text-green-600" aria-live="polite">
                   {tickets.filter((t) => t.status === 'Selesai').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={cardStatRefs[2]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-red-500">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
+              <div className="p-2 bg-red-100 rounded-xl" aria-hidden>
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Batal</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-xl font-bold text-red-600" aria-live="polite">
                   {tickets.filter((t) => t.status === 'Batal').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Table */}
-      <Card>
+      <Card className="overflow-hidden transition-shadow duration-200 hover:shadow-md">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nomor Tiket</TableHead>
-                <TableHead>Tanggal Masuk</TableHead>
-                <TableHead>Pelapor</TableHead>
-                <TableHead>Prioritas</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Aksi</TableHead>
+                <TableHead scope="col">Nomor Tiket</TableHead>
+                <TableHead scope="col">Tanggal Masuk</TableHead>
+                <TableHead scope="col">Pelapor</TableHead>
+                <TableHead scope="col">Prioritas</TableHead>
+                <TableHead scope="col">Status</TableHead>
+                <TableHead scope="col">Aksi</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody ref={tableBodyRef}>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="6" className="text-center py-8 text-gray-500">
-                    Tidak ada tugas
+                  <TableCell colSpan="6" className="text-center py-12 text-gray-500">
+                    <p>Tidak ada tugas. Tiket yang Anda ambil akan muncul di sini.</p>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -250,18 +291,19 @@ const TechnicianMyTasks = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOpenActionModal(ticket)}
+                          aria-label={`Tambah tindakan untuk tiket ${ticket.ticketNumber}`}
                         >
-                          <Plus className="w-4 h-4 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" aria-hidden />
                           Tindakan
                         </Button>
                         <Link to={`/technician/ticket/${ticket.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4 mr-2" />
+                          <Button variant="ghost" size="sm" aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
+                            <Eye className="w-4 h-4 mr-2" aria-hidden />
                             Detail
                           </Button>
                         </Link>
@@ -286,7 +328,7 @@ const TechnicianMyTasks = () => {
           onUpdate={fetchTickets}
         />
       )}
-    </div>
+    </main>
   );
 };
 

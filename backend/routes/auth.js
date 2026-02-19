@@ -64,6 +64,33 @@ router.get('/me', authenticate, logActivity, async (req, res) => {
   });
 });
 
+// Change password (authenticated user)
+router.post('/change-password', authenticate, logActivity, [
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('confirmPassword').custom((value, { req }) => {
+    if (value !== req.body.newPassword) {
+      throw new Error('Passwords do not match');
+    }
+    return true;
+  })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { newPassword } = req.body;
+    req.user.password = newPassword;
+    await req.user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update push subscription
 router.post('/push-subscription', authenticate, logActivity, async (req, res) => {
   try {

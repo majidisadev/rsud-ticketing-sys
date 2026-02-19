@@ -17,7 +17,7 @@ const logActivity = async (req, res, next) => {
         entityType,
         entityId: req.params.id || null,
         details: {
-          body: req.body,
+          body: req.path.includes('change-password') ? {} : req.body,
           query: req.query
         },
         ipAddress: req.ip || req.connection.remoteAddress

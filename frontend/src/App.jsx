@@ -7,6 +7,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import TrackTicket from './pages/TrackTicket';
+import NotFound from './pages/NotFound';
 
 // Protected pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -64,6 +65,9 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+
+      {/* 404 - halaman tidak ditemukan */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
@@ -146,7 +150,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <NotificationProvider>
           <AppRoutes />

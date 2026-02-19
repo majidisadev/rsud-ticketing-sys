@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api, { getBaseUrl } from '../../config/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,8 +7,16 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Select } from '../../components/ui/select';
 import { Search, Calendar, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
+import { useAdminPageAnimation, useStaggerListAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
 
 const AllActivities = () => {
+  const containerRef = useRef(null);
+  const filterCardRef = useRef(null);
+  const statCard1Ref = useRef(null);
+  const statCard2Ref = useRef(null);
+  const statCard3Ref = useRef(null);
+  const tableCardRef = useRef(null);
+
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -51,6 +59,13 @@ const AllActivities = () => {
     (pageSafe - 1) * perPage,
     pageSafe * perPage
   );
+
+  useAdminPageAnimation({
+    containerRef,
+    cardRefs: [filterCardRef, statCard1Ref, statCard2Ref, statCard3Ref, tableCardRef],
+    enabled: !loading
+  });
+  useStaggerListAnimation(tableCardRef, 'tr[data-activity-row]', !loading && paginatedActivities.length > 0);
 
   const handlePerPageChange = (value) => {
     setPerPage(parseInt(value, 10));
@@ -133,34 +148,36 @@ const AllActivities = () => {
 
   if (loading && activities.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4" role="status" aria-live="polite" aria-label="Memuat aktivitas">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-200 border-t-blue-600" aria-hidden="true" />
+        <p className="text-sm text-gray-600">Memuat data aktivitas…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Semua Aktivitas</h1>
+    <main ref={containerRef} className="space-y-5 sm:space-y-6" aria-label="Halaman semua aktivitas">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Semua Aktivitas</h1>
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => handleExport('excel')}
             variant="default"
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+            aria-label="Export ke Excel"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export Excel
           </Button>
-          <Button onClick={() => handleExport('pdf')} variant="destructive">
-            <Download className="w-4 h-4 mr-2" />
+          <Button onClick={() => handleExport('pdf')} variant="destructive" aria-label="Export ke PDF">
+            <Download className="w-4 h-4 mr-2" aria-hidden />
             Export PDF
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Filters */}
-      <Card>
+      <Card ref={filterCardRef} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -170,29 +187,35 @@ const AllActivities = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
               <Input
-                type="text"
+                type="search"
                 placeholder="Cari judul aktivitas / deskripsi masalah..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="pl-10"
+                aria-label="Cari judul aktivitas atau deskripsi masalah"
+                autoComplete="off"
               />
             </div>
             <div>
+              <label htmlFor="date-from-activities" className="sr-only">Dari Tanggal</label>
               <Input
+                id="date-from-activities"
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                placeholder="Dari Tanggal"
+                aria-label="Dari tanggal"
               />
             </div>
             <div>
+              <label htmlFor="date-to-activities" className="sr-only">Sampai Tanggal</label>
               <Input
+                id="date-to-activities"
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                placeholder="Sampai Tanggal"
+                aria-label="Sampai tanggal"
               />
             </div>
           </div>
@@ -200,62 +223,64 @@ const AllActivities = () => {
       </Card>
 
       {/* Statistics (activities + tickets by status) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Ringkasan status aktivitas">
+        <Card ref={statCard1Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600" aria-hidden>
+                <Clock className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Diproses</p>
-                <p className="text-xl font-bold text-yellow-600">
+                <p className="text-sm text-gray-500 font-medium">Diproses</p>
+                <p className="text-xl font-bold text-amber-600 tabular-nums">
                   {activities.filter((a) => a.status === 'diproses').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={statCard2Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600" aria-hidden>
+                <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Selesai</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-sm text-gray-500 font-medium">Selesai</p>
+                <p className="text-xl font-bold text-emerald-600 tabular-nums">
                   {activities.filter((a) => a.status === 'selesai').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card ref={statCard3Ref} className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
+              <div className="p-2.5 bg-red-50 rounded-xl text-red-600" aria-hidden>
+                <XCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Batal</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-sm text-gray-500 font-medium">Batal</p>
+                <p className="text-xl font-bold text-red-600 tabular-nums">
                   {activities.filter((a) => a.status === 'batal').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </section>
 
       {/* Table - Pagination controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Tampilkan</span>
+          <label htmlFor="per-page-activities" className="text-sm text-gray-600">Tampilkan</label>
           <Select
+            id="per-page-activities"
             value={String(perPage)}
             onChange={(e) => handlePerPageChange(e.target.value)}
             className="w-20"
+            aria-label="Jumlah baris per halaman"
           >
             {PER_PAGE_OPTIONS.map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -264,34 +289,34 @@ const AllActivities = () => {
           <span className="text-sm text-gray-600">per halaman</span>
         </div>
         {totalItems > 0 && (
-          <div className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600" role="status">
             Menampilkan {(pageSafe - 1) * perPage + 1}–{Math.min(pageSafe * perPage, totalItems)} dari {totalItems} data
-          </div>
+          </p>
         )}
       </div>
 
-      <Card>
+      <Card ref={tableCardRef} className="shadow-sm border-gray-200/80 overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Teknisi</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Judul Aktivitas / Deskripsi Masalah</TableHead>
-                <TableHead>Tipe</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead scope="col">Teknisi</TableHead>
+                <TableHead scope="col">Tanggal</TableHead>
+                <TableHead scope="col">Judul Aktivitas / Deskripsi Masalah</TableHead>
+                <TableHead scope="col">Tipe</TableHead>
+                <TableHead scope="col">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="5" className="text-center py-8 text-gray-500">
+                  <TableCell colSpan="5" className="text-center py-10 text-gray-500">
                     Tidak ada data
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedActivities.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} data-activity-row>
                     <TableCell>
                       <div className="font-medium">
                         {(() => {
@@ -339,16 +364,17 @@ const AllActivities = () => {
 
       {/* Pagination - page numbers */}
       {totalItems > 0 && (
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <div className="text-sm text-gray-600">
-            Halaman {pageSafe} dari {totalPages}
-          </div>
+        <nav className="flex flex-wrap justify-between items-center gap-4" aria-label="Navigasi halaman aktivitas">
+          <p className="text-sm text-gray-600">
+            Halaman <span className="font-medium">{pageSafe}</span> dari {totalPages}
+          </p>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={pageSafe <= 1}
+              aria-label="Halaman sebelumnya"
             >
               Sebelumnya
             </Button>
@@ -365,13 +391,15 @@ const AllActivities = () => {
                 return (
                   <React.Fragment key={p}>
                     {showEllipsis && (
-                      <span className="px-2 text-gray-400">…</span>
+                      <span className="px-2 text-gray-400" aria-hidden>…</span>
                     )}
                     <Button
                       variant={pageSafe === p ? 'default' : 'outline'}
                       size="sm"
                       className="min-w-[2.25rem]"
                       onClick={() => setPage(p)}
+                      aria-label={pageSafe === p ? `Halaman ${p}, halaman saat ini` : `Ke halaman ${p}`}
+                      aria-current={pageSafe === p ? 'page' : undefined}
                     >
                       {p}
                     </Button>
@@ -383,13 +411,14 @@ const AllActivities = () => {
               size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={pageSafe >= totalPages}
+              aria-label="Halaman berikutnya"
             >
               Selanjutnya
             </Button>
           </div>
-        </div>
+        </nav>
       )}
-    </div>
+    </main>
   );
 };
 
