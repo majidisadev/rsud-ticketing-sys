@@ -1,23 +1,25 @@
 # Ticketing System RSUD
 
-Sistem ticketing berbasis web menggunakan PERN Stack (PostgreSQL, Express, React, Node.js) dengan Tailwind CSS.
+Sistem ticketing berbasis web menggunakan **PERN Stack** (PostgreSQL, Express, React, Node.js) dengan Tailwind CSS. Aplikasi PWA dengan notifikasi real-time, role-based access, dan export laporan (Excel/PDF).
+
+## Daftar Isi
+
+- [Prerequisites](#prerequisites)
+- [Instalasi](#instalasi)
+- [Default Admin](#default-admin-account)
+- [Struktur Project](#struktur-project)
+- [Teknologi](#teknologi)
+- [Fitur](#features)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Production](#production-deployment)
 
 ## Prerequisites
 
-- Node.js (v16 atau lebih baru)
-- PostgreSQL (v12 atau lebih baru)
-- npm atau yarn
-
-## Fitur Utama
-
-- Notifikasi real-time dengan suara
-- Mobile-first design
-- Role-based access control (Admin, Teknisi SIMRS, Teknisi IPSRS)
-- Co-assignment untuk teknisi
-- Dashboard admin dengan charts
-- Export laporan (Excel/PDF)
-- Activity logging
-- System settings management (enable/disable kategori IPSRS)
+- **Node.js** v16+
+- **PostgreSQL** v12+
+- **npm** atau yarn
 
 ## Instalasi
 
@@ -84,20 +86,20 @@ Ini akan:
 - Sync semua model/tabel
 - Membuat default admin user (username: `admin`, password: `admin123`)
 
-7. Build:
-   Development mode:
+7. **Jalankan aplikasi**
 
-```bash
-npm run dev
-```
+   **Development:**
 
-atau
-Production build:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm run build
-npm start
-```
+   **Production:**
+
+   ```bash
+   npm run build
+   npm start
+   ```
 
 ## Default Admin Account
 
@@ -135,6 +137,8 @@ rsud-ticketing-sys/
 - **Styling**: Tailwind CSS, Class Variance Authority
 
 ## Features
+
+Ringkasan fitur: notifikasi real-time dengan suara, mobile-first PWA, role-based access (Admin, Teknisi SIMRS, Teknisi IPSRS), co-assignment, dashboard dengan charts, export Excel/PDF, activity logging, system settings (enable/disable kategori IPSRS).
 
 ### Admin
 
@@ -226,11 +230,13 @@ Admin dapat mengatur pengaturan sistem melalui halaman User Management:
 ## Export & Reporting
 
 ### Export Excel
+
 - Format: .xlsx
 - Isi: Data tiket dengan semua detail (nomor, prioritas, status, lokasi, kategori, teknisi, waktu, dll)
 - Filter: Berdasarkan tanggal mulai dan tanggal akhir
 
 ### Export PDF
+
 - Format: PDF dengan kop surat
 - Isi: Laporan tiket dengan header formal
 - Logo: Otomatis mengambil dari `backend/assets/logo.png` (jika ada)
@@ -240,6 +246,7 @@ Admin dapat mengatur pengaturan sistem melalui halaman User Management:
 ## Development
 
 ### Backend Development
+
 ```bash
 cd backend
 npm run dev
@@ -248,6 +255,7 @@ npm run dev
 Server akan berjalan di `http://localhost:5000`
 
 ### Frontend Development
+
 ```bash
 cd frontend
 npm start
@@ -256,6 +264,7 @@ npm start
 Server akan berjalan di `http://localhost:3000`
 
 ### Database Management
+
 ```bash
 cd backend
 npm run db:init    # Initialize database dan seed admin user
@@ -264,17 +273,23 @@ npm run db:init    # Initialize database dan seed admin user
 ## Production Deployment
 
 1. Build frontend:
+
 ```bash
 cd frontend
 npm run build
 ```
 
-2. Setup environment variables untuk production
+2. Setup environment variables untuk production.
+
 3. Jalankan backend:
+
 ```bash
 cd backend
 npm start
 ```
 
-4. Serve frontend build dengan web server (nginx, apache, atau dari backend)
+4. Serve frontend build dengan web server (nginx, apache, atau `npm run serve` di frontend).
 
+---
+
+**License**: ISC
