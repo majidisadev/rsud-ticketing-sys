@@ -9,7 +9,31 @@ import { Select } from '../../components/ui/select';
 import { Search, Calendar, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
 import { useAdminPageAnimation, useStaggerListAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
 
+const STORAGE_KEY = 'allActivitiesFilters';
+
+const getInitialState = () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const defaults = { dateFrom: '', dateTo: '', search: '' };
+      const perPageOpts = [10, 20, 50, 100];
+      return {
+        filters: { ...defaults, ...data.filters },
+        page: typeof data.page === 'number' ? data.page : 1,
+        perPage: perPageOpts.includes(Number(data.perPage)) ? Number(data.perPage) : 20
+      };
+    }
+  } catch (_) {}
+  return {
+    filters: { dateFrom: '', dateTo: '', search: '' },
+    page: 1,
+    perPage: 20
+  };
+};
+
 const AllActivities = () => {
+  const initialState = getInitialState();
   const containerRef = useRef(null);
   const filterCardRef = useRef(null);
   const statCard1Ref = useRef(null);
@@ -19,13 +43,9 @@ const AllActivities = () => {
 
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
-    search: ''
-  });
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [filters, setFilters] = useState(initialState.filters);
+  const [page, setPage] = useState(initialState.page);
+  const [perPage, setPerPage] = useState(initialState.perPage);
   const PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
   const fetchActivities = useCallback(async () => {
@@ -51,6 +71,10 @@ const AllActivities = () => {
   useEffect(() => {
     setPage(1);
   }, [activities]);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
+  }, [filters, page, perPage]);
 
   const totalItems = activities.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));

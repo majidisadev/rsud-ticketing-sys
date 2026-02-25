@@ -10,7 +10,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Download, Search, Trash2, Eye, Inbox, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useAdminPageAnimation';
 
+const STORAGE_KEY = 'allTicketsFilters';
+
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+const getInitialState = () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const defaults = { search: '', status: '', priority: '', category: '', dateFrom: '', dateTo: '' };
+      const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
+      return {
+        filters: { ...defaults, ...data.filters },
+        page: typeof data.page === 'number' ? data.page : 1,
+        perPage
+      };
+    }
+  } catch (_) {}
+  return {
+    filters: { search: '', status: '', priority: '', category: '', dateFrom: '', dateTo: '' },
+    page: 1,
+    perPage: 20
+  };
+};
+
 const AllTicketsAdmin = () => {
+  const initialState = getInitialState();
   const containerRef = useRef(null);
   const filterCardRef = useRef(null);
   const statCard1Ref = useRef(null);
@@ -21,36 +47,42 @@ const AllTicketsAdmin = () => {
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialState.page);
+  const [perPage, setPerPage] = useState(initialState.perPage);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    search: '',
-    status: '',
-    priority: '',
-    category: '',
-    dateFrom: '',
-    dateTo: ''
-  });
+  const [totalItems, setTotalItems] = useState(0);
+  const [filters, setFilters] = useState(initialState.filters);
 
   useEffect(() => {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters]);
+  }, [page, perPage, filters]);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
+  }, [filters, page, perPage]);
 
   const fetchTickets = async () => {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
+        limit: perPage.toString(),
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       });
       const res = await api.get(`/tickets?${params}`);
       setTickets(res.data.tickets);
       setTotalPages(res.data.totalPages);
+      setTotalItems(res.data.total ?? 0);
     } catch (error) {
       console.error('Fetch tickets error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePerPageChange = (value) => {
+    setPerPage(parseInt(value, 10));
+    setPage(1);
   };
 
   const handleFilterChange = (name, value) => {
@@ -285,6 +317,30 @@ const AllTicketsAdmin = () => {
           </CardContent>
         </Card>
       </section>
+
+      {/* Table - Pagination controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="per-page-tickets" className="text-sm text-gray-600">Tampilkan</label>
+          <Select
+            id="per-page-tickets"
+            value={String(perPage)}
+            onChange={(e) => handlePerPageChange(e.target.value)}
+            className="w-20"
+            aria-label="Jumlah baris per halaman"
+          >
+            {PER_PAGE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </Select>
+          <span className="text-sm text-gray-600">per halaman</span>
+        </div>
+        {totalItems > 0 && (
+          <p className="text-sm text-gray-600" role="status">
+            Menampilkan {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} dari {totalItems} data
+          </p>
+        )}
+      </div>
 
       {/* Table */}
       <Card ref={tableCardRef} className="shadow-sm border-gray-200/80 overflow-hidden">

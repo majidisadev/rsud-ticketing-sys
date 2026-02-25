@@ -12,15 +12,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Label } from '../../components/ui/label';
 import { Search, Eye, Plus, Download, Clock, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
 
+const STORAGE_KEY = 'myTasksFilters';
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+const getInitialState = () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
+      return {
+        filters: { search: '', status: '', ...data.filters },
+        page: typeof data.page === 'number' ? data.page : 1,
+        perPage
+      };
+    }
+  } catch (_) {}
+  return { filters: { search: '', status: '' }, page: 1, perPage: 20 };
+};
+
 const TechnicianMyTasks = () => {
+  const initialState = getInitialState();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(initialState.page);
+  const [perPage, setPerPage] = useState(initialState.perPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
-  const [filters, setFilters] = useState({
-    search: '',
-    status: ''
-  });
+  const [filters, setFilters] = useState(initialState.filters);
 
   const containerRef = useRef(null);
   const cardStatRefs = [useRef(null), useRef(null), useRef(null)];
@@ -32,15 +53,23 @@ const TechnicianMyTasks = () => {
   useEffect(() => {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [page, perPage, filters]);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
+  }, [filters, page, perPage]);
 
   const fetchTickets = async () => {
     try {
-      const params = new URLSearchParams(
-        Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
-      );
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString(),
+        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
+      });
       const res = await api.get(`/tickets/my-tasks?${params}`);
-      setTickets(res.data);
+      setTickets(res.data.tickets);
+      setTotalPages(res.data.totalPages);
+      setTotalItems(res.data.total ?? 0);
     } catch (error) {
       console.error('Fetch my tasks error:', error);
     } finally {
@@ -48,8 +77,14 @@ const TechnicianMyTasks = () => {
     }
   };
 
+  const handlePerPageChange = (value) => {
+    setPerPage(parseInt(value, 10));
+    setPage(1);
+  };
+
   const handleFilterChange = (name, value) => {
     setFilters(prev => ({ ...prev, [name]: value }));
+    setPage(1);
   };
 
   const handleOpenActionModal = (ticket) => {
@@ -251,6 +286,30 @@ const TechnicianMyTasks = () => {
         </Card>
       </section>
 
+      {/* Table - Pagination controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="per-page-mytasks" className="text-sm text-gray-600">Tampilkan</label>
+          <Select
+            id="per-page-mytasks"
+            value={String(perPage)}
+            onChange={(e) => handlePerPageChange(e.target.value)}
+            className="w-20"
+            aria-label="Jumlah baris per halaman"
+          >
+            {PER_PAGE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </Select>
+          <span className="text-sm text-gray-600">per halaman</span>
+        </div>
+        {totalItems > 0 && (
+          <p className="text-sm text-gray-600" role="status">
+            Menampilkan {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} dari {totalItems} data
+          </p>
+        )}
+      </div>
+
       {/* Table */}
       <Card className="overflow-hidden transition-shadow duration-200 hover:shadow-md">
         <CardContent className="p-0">
@@ -316,6 +375,29 @@ const TechnicianMyTasks = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      <nav className="flex justify-center items-center gap-2 flex-wrap" aria-label="Navigasi halaman">
+        <Button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+          variant="outline"
+          aria-label="Halaman sebelumnya"
+        >
+          Sebelumnya
+        </Button>
+        <span className="px-4 py-2 text-sm text-gray-600" aria-current="page">
+          Halaman {page} dari {totalPages}
+        </span>
+        <Button
+          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          variant="outline"
+          aria-label="Halaman berikutnya"
+        >
+          Berikutnya
+        </Button>
+      </nav>
 
       {/* Action Modal */}
       {showActionModal && selectedTicket && (

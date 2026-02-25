@@ -108,11 +108,18 @@ router.get("/track/:ticketNumber", async (req, res) => {
   }
 });
 
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+function parseLimit(queryLimit) {
+  const n = parseInt(queryLimit, 10);
+  return PER_PAGE_OPTIONS.includes(n) ? n : 20;
+}
+
 // Get all tickets (with filters and pagination)
 router.get("/", authenticate, logActivity, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 30;
+    const limit = parseLimit(req.query.limit);
     const offset = (page - 1) * limit;
 
     const where = { isActive: true };
@@ -188,6 +195,9 @@ router.get("/", authenticate, logActivity, async (req, res) => {
 // Get my tasks (assigned to me or co-assigned)
 router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseLimit(req.query.limit);
+    const offset = (page - 1) * limit;
     const statusFilter = req.query.status;
     const search = req.query.search;
 
@@ -223,44 +233,53 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
       ];
     }
 
-    const tickets = await Ticket.findAll({
+    const includes = [
+      {
+        model: User,
+        as: "assignedTechnician",
+        attributes: ["id", "fullName"],
+      },
+      {
+        model: CoAssignment,
+        as: "coAssignments",
+        include: [
+          {
+            model: User,
+            as: "technician",
+            attributes: ["id", "fullName", "username"],
+          },
+        ],
+      },
+      {
+        model: TicketAction,
+        as: "actions",
+        include: [
+          {
+            model: User,
+            as: "creator",
+            attributes: ["id", "fullName"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+        limit: 1,
+        separate: true,
+      },
+    ];
+
+    const { count, rows: tickets } = await Ticket.findAndCountAll({
       where,
-      include: [
-        {
-          model: User,
-          as: "assignedTechnician",
-          attributes: ["id", "fullName"],
-        },
-        {
-          model: CoAssignment,
-          as: "coAssignments",
-          include: [
-            {
-              model: User,
-              as: "technician",
-              attributes: ["id", "fullName", "username"],
-            },
-          ],
-        },
-        {
-          model: TicketAction,
-          as: "actions",
-          include: [
-            {
-              model: User,
-              as: "creator",
-              attributes: ["id", "fullName"],
-            },
-          ],
-          order: [["createdAt", "DESC"]],
-          limit: 1,
-          separate: true,
-        },
-      ],
+      include: includes,
       order: [["updatedAt", "DESC"]],
+      limit,
+      offset,
     });
 
-    res.json(tickets);
+    res.json({
+      tickets,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit) || 1,
+    });
   } catch (error) {
     console.error("Get my tasks error:", error);
     res.status(500).json({ message: "Server error" });

@@ -23,12 +23,12 @@ router.post('/login', [
     const user = await User.findOne({ where: { username } });
 
     if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Username atau password salah. Periksa kembali.' });
     }
 
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Username atau password salah. Periksa kembali.' });
     }
 
     const token = jwt.sign(

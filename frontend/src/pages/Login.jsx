@@ -1,17 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { createTimeline, set, stagger, animate as animeAnimate } from 'animejs';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { AlertCircle, LogIn, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { createTimeline, set, stagger, animate as animeAnimate } from "animejs";
+import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../components/ui/card";
+import { AlertCircle, LogIn, Loader2 } from "lucide-react";
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -28,8 +34,8 @@ const Login = () => {
   const errorRef = useRef(null);
 
   const prefersReducedMotion = () =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -44,7 +50,17 @@ const Login = () => {
     const submit = submitRef.current;
     const back = backLinkRef.current;
 
-    if (!card || !logo || !title || !desc || !form || !userWrap || !passWrap || !submit || !back)
+    if (
+      !card ||
+      !logo ||
+      !title ||
+      !desc ||
+      !form ||
+      !userWrap ||
+      !passWrap ||
+      !submit ||
+      !back
+    )
       return;
 
     set([card, logo, title, desc, form], { opacity: 0 });
@@ -54,7 +70,7 @@ const Login = () => {
     set([userWrap, passWrap], { opacity: 0, y: 12 });
     set([submit, back], { opacity: 0, y: 8 });
 
-    const tl = createTimeline({ defaults: { ease: 'outExpo', duration: 500 } });
+    const tl = createTimeline({ defaults: { ease: "outExpo", duration: 500 } });
 
     tl.add(card, {
       opacity: { to: 1 },
@@ -62,19 +78,23 @@ const Login = () => {
       scale: { to: 1 },
       duration: 550,
     })
-      .add(logo, { opacity: { to: 1 }, scale: { to: 1 }, duration: 450 }, '-=350')
-      .add(title, { opacity: { to: 1 }, y: { to: 0 }, duration: 400 }, '-=300')
-      .add(desc, { opacity: { to: 1 }, y: { to: 0 }, duration: 380 }, '-=280')
-      .add(form, { opacity: { to: 1 }, duration: 300 }, '-=200')
+      .add(
+        logo,
+        { opacity: { to: 1 }, scale: { to: 1 }, duration: 450 },
+        "-=350",
+      )
+      .add(title, { opacity: { to: 1 }, y: { to: 0 }, duration: 400 }, "-=300")
+      .add(desc, { opacity: { to: 1 }, y: { to: 0 }, duration: 380 }, "-=280")
+      .add(form, { opacity: { to: 1 }, duration: 300 }, "-=200")
       .add(
         [userWrap, passWrap],
         { opacity: { to: 1 }, y: { to: 0 }, duration: 400, delay: stagger(80) },
-        '-=180'
+        "-=180",
       )
       .add(
         [submit, back],
         { opacity: { to: 1 }, y: { to: 0 }, duration: 350, delay: stagger(60) },
-        '-=120'
+        "-=120",
       );
   }, []);
 
@@ -83,35 +103,51 @@ const Login = () => {
     const el = errorRef.current;
     if (!el) return;
     set(el, { opacity: 0, y: -6 });
-    animeAnimate(el, { opacity: { to: 1 }, y: { to: 0 } }, { duration: 280, ease: 'outExpo' });
+    animeAnimate(
+      el,
+      { opacity: { to: 1 }, y: { to: 0 } },
+      { duration: 280, ease: "outExpo" },
+    );
   }, [error]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      await login(username, password);
-      const user = JSON.parse(localStorage.getItem('user'));
+      const data = await login(username, password);
+      const user = data?.user;
 
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard');
+      if (!user) {
+        setError("Respons server tidak valid. Coba lagi atau periksa koneksi ke backend.");
+        return;
+      }
+
+      if (user.role === "admin") {
+        navigate("/admin/dashboard");
       } else {
-        navigate('/technician/my-tasks');
+        navigate("/technician/my-tasks");
       }
     } catch (err) {
-      let errorMessage = 'Login gagal';
+      let errorMessage = "Login gagal. Coba lagi.";
 
-      if (err.response?.data?.message) {
+      if (err.response?.status === 401) {
+        errorMessage =
+          err.response?.data?.message ||
+          "Username atau password salah. Periksa kembali.";
+      } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.message) {
         errorMessage = err.message;
       }
 
-      if (errorMessage.includes('diblokir') || errorMessage.includes('blocked')) {
+      if (
+        errorMessage.includes("diblokir") ||
+        errorMessage.includes("blocked")
+      ) {
         errorMessage =
-          'Request diblokir oleh browser. Silakan nonaktifkan ad blocker atau ekstensi yang memblokir request, lalu refresh halaman.';
+          "Request diblokir oleh browser. Silakan nonaktifkan ad blocker atau ekstensi yang memblokir request, lalu refresh halaman.";
       }
 
       setError(errorMessage);
@@ -125,7 +161,7 @@ const Login = () => {
       className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
       style={{
         background:
-          'linear-gradient(135deg, #0f172a 0%, #1e293b 35%, #334155 60%, #1e3a5f 85%, #0f172a 100%)',
+          "linear-gradient(135deg, #0f172a 0%, #1e293b 35%, #334155 60%, #1e3a5f 85%, #0f172a 100%)",
       }}
     >
       {/* Decorative background elements */}
@@ -136,21 +172,29 @@ const Login = () => {
           backgroundImage: `radial-gradient(circle at 20% 30%, #38bdf8 1px, transparent 1px),
             radial-gradient(circle at 80% 70%, #818cf8 1px, transparent 1px),
             radial-gradient(circle at 50% 50%, #22d3ee 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
+          backgroundSize: "48px 48px",
         }}
       />
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-20 blur-3xl pointer-events-none"
         aria-hidden="true"
-        style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)' }}
+        style={{
+          background: "radial-gradient(circle, #3b82f6 0%, transparent 70%)",
+        }}
       />
       <div
         className="absolute bottom-0 right-0 w-[400px] h-[300px] rounded-full opacity-15 blur-3xl pointer-events-none"
         aria-hidden="true"
-        style={{ background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' }}
+        style={{
+          background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)",
+        }}
       />
 
-      <main className="relative z-10 w-full max-w-md" id="login-main" role="main">
+      <main
+        className="relative z-10 w-full max-w-md"
+        id="login-main"
+        role="main"
+      >
         <Card
           ref={cardRef}
           className="border-slate-700/50 bg-slate-900/90 backdrop-blur-xl shadow-2xl shadow-black/30 text-slate-100"
@@ -210,8 +254,8 @@ const Login = () => {
                   autoComplete="username"
                   autoFocus
                   aria-required="true"
-                  aria-invalid={error ? 'true' : undefined}
-                  aria-describedby={error ? 'login-error' : undefined}
+                  aria-invalid={error ? "true" : undefined}
+                  aria-describedby={error ? "login-error" : undefined}
                   className="bg-slate-800/60 border-slate-600 text-white placeholder:text-slate-500 focus-visible:ring-blue-400 focus-visible:border-blue-400"
                   placeholder="Masukkan username"
                 />
@@ -231,8 +275,8 @@ const Login = () => {
                   required
                   autoComplete="current-password"
                   aria-required="true"
-                  aria-invalid={error ? 'true' : undefined}
-                  aria-describedby={error ? 'login-error' : undefined}
+                  aria-invalid={error ? "true" : undefined}
+                  aria-describedby={error ? "login-error" : undefined}
                   className="bg-slate-800/60 border-slate-600 text-white placeholder:text-slate-500 focus-visible:ring-blue-400 focus-visible:border-blue-400"
                   placeholder="Masukkan password"
                 />

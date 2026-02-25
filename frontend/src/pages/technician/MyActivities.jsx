@@ -11,8 +11,33 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Search, Plus, Edit2, Trash2, X, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
 
+const STORAGE_KEY_REPORT = 'myActivitiesReportFilters';
+
+const getReportInitialState = () => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_REPORT);
+    if (raw) {
+      const data = JSON.parse(raw);
+      const defaults = { status: '', dateFrom: '', dateTo: '', search: '' };
+      return {
+        activeTab: data.activeTab === 'laporan' ? 'laporan' : 'aktivitas',
+        reportFilters: { ...defaults, ...data.reportFilters },
+        reportPage: typeof data.reportPage === 'number' ? data.reportPage : 1,
+        reportPerPage: [10, 20, 50, 100].includes(Number(data.reportPerPage)) ? Number(data.reportPerPage) : 20
+      };
+    }
+  } catch (_) {}
+  return {
+    activeTab: 'aktivitas',
+    reportFilters: { status: '', dateFrom: '', dateTo: '', search: '' },
+    reportPage: 1,
+    reportPerPage: 20
+  };
+};
+
 const MyActivities = () => {
-  const [activeTab, setActiveTab] = useState('aktivitas');
+  const reportState = getReportInitialState();
+  const [activeTab, setActiveTab] = useState(reportState.activeTab);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState([]);
   const [calendarDatesWithDiproses, setCalendarDatesWithDiproses] = useState([]);
@@ -31,14 +56,9 @@ const MyActivities = () => {
   
   // Report states
   const [reportData, setReportData] = useState([]);
-  const [reportFilters, setReportFilters] = useState({
-    status: '',
-    dateFrom: '',
-    dateTo: '',
-    search: ''
-  });
-  const [reportPage, setReportPage] = useState(1);
-  const [reportPerPage, setReportPerPage] = useState(20);
+  const [reportFilters, setReportFilters] = useState(reportState.reportFilters);
+  const [reportPage, setReportPage] = useState(reportState.reportPage);
+  const [reportPerPage, setReportPerPage] = useState(reportState.reportPerPage);
   const REPORT_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
   // Format date to YYYY-MM-DD (local date, avoid UTC shift)
@@ -129,6 +149,15 @@ const MyActivities = () => {
       fetchReportData();
     }
   }, [activeTab, fetchActivities, fetchCalendarDates, fetchReportData]);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY_REPORT, JSON.stringify({
+      activeTab,
+      reportFilters,
+      reportPage,
+      reportPerPage
+    }));
+  }, [activeTab, reportFilters, reportPage, reportPerPage]);
 
   // Reset report page when report data changes (e.g. after filter change)
   useEffect(() => {

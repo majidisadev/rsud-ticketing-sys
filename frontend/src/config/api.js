@@ -98,10 +98,15 @@ api.interceptors.response.use(
       });
     }
     
+    // Only redirect to login on 401 when it's NOT the login request itself
+    // (wrong credentials on login should show error on page, not redirect)
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      if (!isLoginRequest) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     
     // Handle network errors (CORS, connection refused, blocked by client, etc.)
