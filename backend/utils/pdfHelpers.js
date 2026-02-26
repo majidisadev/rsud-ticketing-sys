@@ -71,7 +71,7 @@ function drawLetterhead(doc) {
     .fontSize(11)
     .fillColor("#000000")
     .font("Helvetica-Bold")
-    .text("PEMERINTAH KOTA X", textLeftMargin, startY, {
+    .text("PEMERINTAH KOTA SERANG", textLeftMargin, startY, {
       width: textWidth,
       align: "center",
     });
@@ -79,7 +79,7 @@ function drawLetterhead(doc) {
   doc
     .fontSize(16)
     .font("Helvetica-Bold")
-    .text("RSUD KOTA X", textLeftMargin, startY + 14, {
+    .text("UPTD RSUD KOTA Serang", textLeftMargin, startY + 14, {
       width: textWidth,
       align: "center",
     });
@@ -88,16 +88,16 @@ function drawLetterhead(doc) {
     .fontSize(9)
     .font("Helvetica")
     .text(
-      "Jl. Raya RT.0/RW.0. City, Province",
+      "Jl. Raya Jakarta Km.4 Lingkungan Kp.Baru RT.02/RW/11. Serang, Banten",
       textLeftMargin,
       startY + 35,
-      { width: textWidth, align: "center" }
+      { width: textWidth, align: "center" },
     );
 
   doc
     .fontSize(9)
     .font("Helvetica")
-    .text("Telp. (0123) 4567890", textLeftMargin, startY + 48, {
+    .text("Telp. (0254) 7932007", textLeftMargin, startY + 48, {
       width: textWidth,
       align: "center",
     });
@@ -141,7 +141,7 @@ async function addVerificationSection(doc, exporterName, yPosition) {
   }
 
   const exportDate = moment().locale("id").format("DD MMMM YYYY");
-  const cityName = "Kota X";
+  const cityName = "Kota Serang";
 
   doc
     .fontSize(10)
