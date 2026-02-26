@@ -54,21 +54,21 @@ api.interceptors.request.use((config) => {
     config.baseURL = apiUrl;
   }
   
-  // Calculate full URL for logging
-  const fullURL = config.url?.startsWith('http') 
-    ? config.url 
-    : (config.baseURL + (config.url || ''));
-  
-  // Always log to help debug
-  console.log('🔵 API Request:', {
-    method: config.method?.toUpperCase(),
-    originalUrl: config.url,
-    baseURL: config.baseURL,
-    fullURL: fullURL,
-    hostname: window.location.hostname,
-    origin: window.location.origin
-  });
-  
+  // Log only when explicitly enabled (e.g. VITE_DEBUG_API=true in .env)
+  if (import.meta.env.VITE_DEBUG_API === 'true') {
+    const fullURL = config.url?.startsWith('http')
+      ? config.url
+      : (config.baseURL + (config.url || ''));
+    console.log('🔵 API Request:', {
+      method: config.method?.toUpperCase(),
+      originalUrl: config.url,
+      baseURL: config.baseURL,
+      fullURL,
+      hostname: window.location.hostname,
+      origin: window.location.origin
+    });
+  }
+
   // Add token to requests
   const token = localStorage.getItem('token');
   if (token) {
