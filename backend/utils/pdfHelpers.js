@@ -79,7 +79,7 @@ function drawLetterhead(doc) {
   doc
     .fontSize(16)
     .font("Helvetica-Bold")
-    .text("UPTD RSUD KOTA Serang", textLeftMargin, startY + 14, {
+    .text("UPTD RSUD KOTA SERANG", textLeftMargin, startY + 14, {
       width: textWidth,
       align: "center",
     });
@@ -91,7 +91,10 @@ function drawLetterhead(doc) {
       "Jl. Raya Jakarta Km.4 Lingkungan Kp.Baru RT.02/RW/11. Serang, Banten",
       textLeftMargin,
       startY + 35,
-      { width: textWidth, align: "center" },
+      {
+        width: textWidth,
+        align: "center",
+      },
     );
 
   doc
