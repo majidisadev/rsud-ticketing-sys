@@ -7,10 +7,13 @@ const ActivityLog = require('./ActivityLog');
 const CoAssignment = require('./CoAssignment');
 const Settings = require('./Settings');
 const TechnicianActivity = require('./TechnicianActivity');
+const ProblemType = require('./ProblemType');
 
 // Define associations
 User.hasMany(Ticket, { foreignKey: 'assignedTo', as: 'assignedTickets' });
 Ticket.belongsTo(User, { foreignKey: 'assignedTo', as: 'assignedTechnician' });
+Ticket.belongsTo(ProblemType, { foreignKey: 'problemTypeId', as: 'problemType' });
+ProblemType.hasMany(Ticket, { foreignKey: 'problemTypeId' });
 
 User.hasMany(Ticket, { foreignKey: 'reporterId', as: 'reportedTickets' });
 Ticket.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
@@ -45,6 +48,7 @@ module.exports = {
   ActivityLog,
   CoAssignment,
   Settings,
-  TechnicianActivity
+  TechnicianActivity,
+  ProblemType
 };
 

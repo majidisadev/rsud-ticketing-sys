@@ -20,7 +20,7 @@ const getInitialState = () => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { search: '', status: '', priority: '', dateFrom: '', dateTo: '' };
+      const defaults = { search: '', status: '', problemTypeId: '', dateFrom: '', dateTo: '' };
       const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
       return {
         filters: { ...defaults, ...data.filters },
@@ -30,7 +30,7 @@ const getInitialState = () => {
     }
   } catch (_) {}
   return {
-    filters: { search: '', status: '', priority: '', dateFrom: '', dateTo: '' },
+    filters: { search: '', status: '', problemTypeId: '', dateFrom: '', dateTo: '' },
     page: 1,
     perPage: 20
   };
@@ -47,6 +47,7 @@ const TechnicianAllTasks = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [filters, setFilters] = useState(initialState.filters);
+  const [problemTypes, setProblemTypes] = useState([]);
 
   const containerRef = useRef(null);
   const cardStatRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -59,6 +60,18 @@ const TechnicianAllTasks = () => {
     fetchTickets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage, filters]);
+
+  useEffect(() => {
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+    fetchProblemTypes();
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
@@ -117,15 +130,11 @@ const TechnicianAllTasks = () => {
     return variants[status] || 'secondary';
   };
 
-  const getPriorityColor = (priority) => {
-    const priorityLower = (priority || '').toLowerCase();
-    if (priorityLower === 'rendah') {
-      return 'text-green-600 font-semibold';
-    } else if (priorityLower === 'sedang') {
-      return 'text-yellow-600 font-semibold';
-    } else if (priorityLower === 'tinggi') {
-      return 'text-red-600 font-semibold';
-    }
+  const getProblemTypeColor = (slugOrName) => {
+    const s = (slugOrName || '').toLowerCase();
+    if (s === 'rendah') return 'text-green-600 font-semibold';
+    if (s === 'sedang') return 'text-yellow-600 font-semibold';
+    if (s === 'tinggi') return 'text-red-600 font-semibold';
     return '';
   };
 
@@ -192,17 +201,17 @@ const TechnicianAllTasks = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="all-tasks-priority" className="sr-only">Prioritas</Label>
+              <Label htmlFor="all-tasks-problem-type" className="sr-only">Tipe Masalah</Label>
               <Select
-                id="all-tasks-priority"
-                value={filters.priority}
-                onChange={(e) => handleFilterChange('priority', e.target.value)}
-                aria-label="Filter berdasarkan prioritas"
+                id="all-tasks-problem-type"
+                value={filters.problemTypeId}
+                onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
+                aria-label="Filter berdasarkan tipe masalah"
               >
-                <option value="">Semua Prioritas</option>
-                <option value="tinggi">Tinggi</option>
-                <option value="sedang">Sedang</option>
-                <option value="rendah">Rendah</option>
+                <option value="">Semua Tipe Masalah</option>
+                {problemTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>{pt.name}</option>
+                ))}
               </Select>
             </div>
           </div>
@@ -295,7 +304,7 @@ const TechnicianAllTasks = () => {
         </Card>
       </section>
 
-      {/* Table - Pagination controls */}
+      {/* Table - Pagination controls and Export */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
           <label htmlFor="per-page-tasks" className="text-sm text-gray-600">Tampilkan</label>
@@ -325,11 +334,11 @@ const TechnicianAllTasks = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead scope="col">Kategori</TableHead>
                 <TableHead scope="col">Nomor Tiket</TableHead>
-                <TableHead scope="col">Tanggal Masuk</TableHead>
+                <TableHead scope="col">Waktu Masuk</TableHead>
+                <TableHead scope="col">Waktu Pengambilan</TableHead>
                 <TableHead scope="col">Pelapor</TableHead>
-                <TableHead scope="col">Prioritas</TableHead>
+                <TableHead scope="col">Tipe Masalah</TableHead>
                 <TableHead scope="col">Status</TableHead>
                 <TableHead scope="col">Aksi</TableHead>
               </TableRow>
@@ -344,16 +353,18 @@ const TechnicianAllTasks = () => {
               ) : (
                 tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
-                  <TableCell className="font-medium">{ticket.category}</TableCell>
                   <TableCell>{ticket.ticketNumber}</TableCell>
                   <TableCell>
-                    {new Date(ticket.createdAt).toLocaleDateString('id-ID')}
+                    {new Date(ticket.createdAt).toLocaleString('id-ID')}
+                  </TableCell>
+                  <TableCell>
+                    {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
                   </TableCell>
                   <TableCell>
                     {ticket.reporterName} - {ticket.reporterUnit}
                   </TableCell>
-                  <TableCell className={getPriorityColor(ticket.priority)}>
-                    {ticket.priority || '-'}
+                  <TableCell className={getProblemTypeColor(ticket.problemType?.slug || ticket.problemType?.name)}>
+                    {ticket.problemType?.name || '-'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(ticket.status)}>

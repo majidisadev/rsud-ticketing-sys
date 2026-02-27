@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationMenu from './NotificationMenu';
 import ChangePasswordDialog from './ChangePasswordDialog';
-import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays, KeyRound } from 'lucide-react';
+import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays, KeyRound, Tag } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const Layout = ({ children }) => {
@@ -25,7 +25,8 @@ const Layout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/admin/tickets', label: 'Semua Tiket', icon: FileText },
     { path: '/admin/all-activities', label: 'Semua Aktivitas', icon: CalendarDays },
-    { path: '/admin/users', label: 'Manajemen User', icon: Users }
+    { path: '/admin/users', label: 'Manajemen User', icon: Users },
+    { path: '/admin/problem-types', label: 'Pengaturan Tipe Masalah', icon: Tag }
   ];
 
   const technicianMenu = [

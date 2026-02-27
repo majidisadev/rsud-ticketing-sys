@@ -18,6 +18,7 @@ const TicketDetail = () => {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [technicians, setTechnicians] = useState([]);
+  const [problemTypes, setProblemTypes] = useState([]);
   const [showCoAssignModal, setShowCoAssignModal] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState('');
 
@@ -47,6 +48,15 @@ const TicketDetail = () => {
     if (user?.role !== 'admin') {
       fetchTechnicians();
     }
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+    fetchProblemTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
 
@@ -79,9 +89,11 @@ const TicketDetail = () => {
     }
   };
 
-  const handlePriorityChange = async (priority) => {
+  const handleProblemTypeChange = async (problemTypeId) => {
     try {
-      await api.patch(`/tickets/${id}/priority`, { priority });
+      await api.patch(`/tickets/${id}/problem-type`, {
+        problemTypeId: problemTypeId ? parseInt(problemTypeId, 10) : null
+      });
       fetchTicket();
     } catch (error) {
       alert(error.response?.data?.message || 'Terjadi kesalahan');
@@ -282,28 +294,34 @@ const TicketDetail = () => {
                 )}
               </div>
               <div>
-                <Label className="text-sm text-gray-600">Prioritas</Label>
+                <Label className="text-sm text-gray-600">Tipe Masalah</Label>
                 {canEdit && user?.role !== 'admin' ? (
                   <Select
-                    value={ticket.priority || ''}
-                    onChange={(e) => handlePriorityChange(e.target.value || null)}
+                    value={ticket.problemTypeId ?? ''}
+                    onChange={(e) => handleProblemTypeChange(e.target.value || null)}
                   >
                     <option value="">-</option>
-                    <option value="tinggi">Tinggi</option>
-                    <option value="sedang">Sedang</option>
-                    <option value="rendah">Rendah</option>
+                    {problemTypes.map((pt) => (
+                      <option key={pt.id} value={pt.id}>{pt.name}</option>
+                    ))}
                   </Select>
                 ) : (
                   <div className="mt-1">
-                    {ticket.priority ? (
-                      <Badge variant={getPriorityVariant(ticket.priority)}>
-                        {ticket.priority}
+                    {ticket.problemType?.name ? (
+                      <Badge variant={getPriorityVariant(ticket.problemType.slug || ticket.problemType.name)}>
+                        {ticket.problemType.name}
                       </Badge>
                     ) : (
                       <span className="text-gray-500">-</span>
                     )}
                   </div>
                 )}
+              </div>
+              <div>
+                <Label className="text-sm text-gray-600">Waktu Pengambilan</Label>
+                <p className="font-medium text-gray-900">
+                  {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
+                </p>
               </div>
               <div>
                 <Label className="text-sm text-gray-600">Teknisi</Label>
@@ -333,7 +351,7 @@ const TicketDetail = () => {
                 <p className="font-medium text-gray-900">{ticket.reporterPhone}</p>
               </div>
               <div>
-                <Label className="text-sm text-gray-600">Tanggal Masuk</Label>
+                <Label className="text-sm text-gray-600">Waktu Masuk</Label>
                 <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
               </div>
             </CardContent>

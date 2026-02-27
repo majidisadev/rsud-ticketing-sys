@@ -70,6 +70,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/activities', require('./routes/activities'));
+app.use('/api/problem-types', require('./routes/problemTypes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

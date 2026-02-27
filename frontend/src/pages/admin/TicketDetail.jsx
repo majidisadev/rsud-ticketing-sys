@@ -4,19 +4,30 @@ import api, { getBaseUrl } from '../../config/api';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Eye, ArrowLeft, Calendar, User, Phone, Building, Tag } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { ArrowLeft, Calendar, User, Phone, Building, Tag, Pencil, Check, X } from 'lucide-react';
 import { useAdminPageAnimation } from '../../hooks/useAdminPageAnimation';
+
+const toDatetimeLocal = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const AdminTicketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const containerRef = useRef(null);
-  const viewOnlyCardRef = useRef(null);
   const infoCardRef = useRef(null);
   const reporterCardRef = useRef(null);
   const descCardRef = useRef(null);
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editingTimes, setEditingTimes] = useState(false);
+  const [timeForm, setTimeForm] = useState({ createdAt: '', pickedUpAt: '', lastStatusChangeAt: '' });
+  const [savingTimes, setSavingTimes] = useState(false);
 
   useEffect(() => {
     fetchTicket();
@@ -44,18 +55,48 @@ const AdminTicketDetail = () => {
     return variants[status] || 'secondary';
   };
 
-  const getPriorityVariant = (priority) => {
-    const variants = {
-      tinggi: 'destructive',
-      sedang: 'warning',
-      rendah: 'success'
-    };
-    return variants[priority] || 'secondary';
+  const getProblemTypeVariant = (slugOrName) => {
+    const s = (slugOrName || '').toLowerCase();
+    if (s === 'tinggi') return 'destructive';
+    if (s === 'sedang') return 'warning';
+    if (s === 'rendah') return 'success';
+    return 'secondary';
+  };
+
+  const startEditTimes = () => {
+    setTimeForm({
+      createdAt: toDatetimeLocal(ticket.createdAt),
+      pickedUpAt: toDatetimeLocal(ticket.pickedUpAt),
+      lastStatusChangeAt: toDatetimeLocal(ticket.lastStatusChangeAt || ticket.updatedAt)
+    });
+    setEditingTimes(true);
+  };
+
+  const cancelEditTimes = () => {
+    setEditingTimes(false);
+  };
+
+  const saveTimes = async () => {
+    setSavingTimes(true);
+    try {
+      const body = {};
+      if (timeForm.createdAt) body.createdAt = new Date(timeForm.createdAt).toISOString();
+      if (timeForm.pickedUpAt) body.pickedUpAt = new Date(timeForm.pickedUpAt).toISOString();
+      if (timeForm.lastStatusChangeAt) body.lastStatusChangeAt = new Date(timeForm.lastStatusChangeAt).toISOString();
+      await api.patch(`/tickets/${id}/admin`, body);
+      await fetchTicket();
+      setEditingTimes(false);
+    } catch (error) {
+      console.error('Save times error:', error);
+      alert(error.response?.data?.message || 'Gagal menyimpan');
+    } finally {
+      setSavingTimes(false);
+    }
   };
 
   useAdminPageAnimation({
     containerRef,
-    cardRefs: [viewOnlyCardRef, infoCardRef, reporterCardRef, descCardRef],
+    cardRefs: [infoCardRef, reporterCardRef, descCardRef],
     enabled: !!ticket && !loading
   });
 
@@ -99,22 +140,11 @@ const AdminTicketDetail = () => {
         </div>
         <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
           <Badge variant={getStatusVariant(ticket.status)}>{ticket.status}</Badge>
-          {ticket.priority && (
-            <Badge variant={getPriorityVariant(ticket.priority)}>{ticket.priority}</Badge>
+          {ticket.problemType?.name && (
+            <Badge variant={getProblemTypeVariant(ticket.problemType.slug || ticket.problemType.name)}>{ticket.problemType.name}</Badge>
           )}
         </div>
       </header>
-
-      {/* View Only Badge */}
-      <Card ref={viewOnlyCardRef} className="bg-blue-50/80 border-blue-200 shadow-sm">
-        <CardContent className="p-4 flex items-start gap-3">
-          <Eye className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" aria-hidden />
-          <div>
-            <p className="text-sm font-medium text-blue-900">Mode View Only</p>
-            <p className="text-xs text-blue-700 mt-1">Sebagai admin, Anda hanya dapat melihat detail tiket. Tidak dapat mengubah status, prioritas, atau menambahkan tindakan.</p>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Column */}
@@ -140,19 +170,81 @@ const AdminTicketDetail = () => {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                <Tag className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-600">Tanggal Masuk</p>
-                  <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
+                  <p className="text-sm text-gray-600">Tipe Masalah</p>
+                  <p className="font-medium text-gray-900">{ticket.problemType?.name || '-'}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-sm text-gray-600">Terakhir Update</p>
-                  <p className="font-medium text-gray-900">{new Date(ticket.updatedAt).toLocaleString('id-ID')}</p>
-                </div>
-              </div>
+              {!editingTimes ? (
+                <>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Waktu Masuk</p>
+                      <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Waktu Ambil</p>
+                      <p className="font-medium text-gray-900">{ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Waktu Terakhir Update</p>
+                      <p className="font-medium text-gray-900">{new Date(ticket.lastStatusChangeAt || ticket.updatedAt).toLocaleString('id-ID')}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={startEditTimes} aria-label="Edit waktu">
+                    <Pencil className="w-4 h-4 mr-1" aria-hidden />
+                    Edit Waktu
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-createdAt">Waktu Masuk</Label>
+                    <Input
+                      id="admin-createdAt"
+                      type="datetime-local"
+                      value={timeForm.createdAt}
+                      onChange={(e) => setTimeForm((f) => ({ ...f, createdAt: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-pickedUpAt">Waktu Ambil</Label>
+                    <Input
+                      id="admin-pickedUpAt"
+                      type="datetime-local"
+                      value={timeForm.pickedUpAt}
+                      onChange={(e) => setTimeForm((f) => ({ ...f, pickedUpAt: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-lastStatusChangeAt">Waktu Terakhir Update</Label>
+                    <Input
+                      id="admin-lastStatusChangeAt"
+                      type="datetime-local"
+                      value={timeForm.lastStatusChangeAt}
+                      onChange={(e) => setTimeForm((f) => ({ ...f, lastStatusChangeAt: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveTimes} disabled={savingTimes} aria-label="Simpan waktu">
+                      <Check className="w-4 h-4 mr-1" aria-hidden />
+                      Simpan
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={cancelEditTimes} disabled={savingTimes} aria-label="Batal">
+                      <X className="w-4 h-4 mr-1" aria-hidden />
+                      Batal
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

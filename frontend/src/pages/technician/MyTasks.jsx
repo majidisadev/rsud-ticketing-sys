@@ -139,15 +139,11 @@ const TechnicianMyTasks = () => {
     return variants[status] || 'secondary';
   };
 
-  const getPriorityColor = (priority) => {
-    const priorityLower = (priority || '').toLowerCase();
-    if (priorityLower === 'rendah') {
-      return 'text-green-600 font-semibold';
-    } else if (priorityLower === 'sedang') {
-      return 'text-yellow-600 font-semibold';
-    } else if (priorityLower === 'tinggi') {
-      return 'text-red-600 font-semibold';
-    }
+  const getProblemTypeColor = (slugOrName) => {
+    const s = (slugOrName || '').toLowerCase();
+    if (s === 'rendah') return 'text-green-600 font-semibold';
+    if (s === 'sedang') return 'text-yellow-600 font-semibold';
+    if (s === 'tinggi') return 'text-red-600 font-semibold';
     return '';
   };
 
@@ -317,9 +313,10 @@ const TechnicianMyTasks = () => {
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Nomor Tiket</TableHead>
-                <TableHead scope="col">Tanggal Masuk</TableHead>
+                <TableHead scope="col">Waktu Masuk</TableHead>
+                <TableHead scope="col">Waktu Pengambilan</TableHead>
                 <TableHead scope="col">Pelapor</TableHead>
-                <TableHead scope="col">Prioritas</TableHead>
+                <TableHead scope="col">Tipe Masalah</TableHead>
                 <TableHead scope="col">Status</TableHead>
                 <TableHead scope="col">Aksi</TableHead>
               </TableRow>
@@ -327,7 +324,7 @@ const TechnicianMyTasks = () => {
             <TableBody ref={tableBodyRef}>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="6" className="text-center py-12 text-gray-500">
+                  <TableCell colSpan="7" className="text-center py-12 text-gray-500">
                     <p>Tidak ada tugas. Tiket yang Anda ambil akan muncul di sini.</p>
                   </TableCell>
                 </TableRow>
@@ -336,13 +333,16 @@ const TechnicianMyTasks = () => {
                   <TableRow key={ticket.id}>
                     <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
                     <TableCell>
-                      {new Date(ticket.createdAt).toLocaleDateString('id-ID')}
+                      {new Date(ticket.createdAt).toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
                     </TableCell>
                     <TableCell>
                       {ticket.reporterName} - {ticket.reporterUnit}
                     </TableCell>
-                    <TableCell className={getPriorityColor(ticket.priority)}>
-                      {ticket.priority || '-'}
+                    <TableCell className={getProblemTypeColor(ticket.problemType?.slug || ticket.problemType?.name)}>
+                      {ticket.problemType?.name || '-'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(ticket.status)}>

@@ -44,6 +44,14 @@ const Ticket = sequelize.define('Ticket', {
     type: DataTypes.ENUM('tinggi', 'sedang', 'rendah'),
     allowNull: true
   },
+  problemTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'problem_types',
+      key: 'id'
+    }
+  },
   assignedTo: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -70,6 +78,14 @@ const Ticket = sequelize.define('Ticket', {
   },
   proofPhotoUrl: {
     type: DataTypes.STRING,
+    allowNull: true
+  },
+  pickedUpAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  lastStatusChangeAt: {
+    type: DataTypes.DATE,
     allowNull: true
   }
 }, {

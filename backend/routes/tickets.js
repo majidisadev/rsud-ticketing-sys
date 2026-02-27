@@ -1,7 +1,7 @@
 const express = require("express");
 const { Op } = require("sequelize");
 const { body, validationResult } = require("express-validator");
-const { Ticket, TicketAction, User, CoAssignment } = require("../models");
+const { Ticket, TicketAction, User, CoAssignment, ProblemType } = require("../models");
 const { authenticate, authorize } = require("../middleware/auth");
 const logActivity = require("../middleware/activityLogger");
 const upload = require("../utils/fileUpload");
@@ -71,6 +71,11 @@ router.get("/track/:ticketNumber", async (req, res) => {
           attributes: ["id", "fullName", "phoneNumber"],
         },
         {
+          model: ProblemType,
+          as: "problemType",
+          attributes: ["id", "name", "slug"],
+        },
+        {
           model: CoAssignment,
           as: "coAssignments",
           include: [
@@ -125,7 +130,7 @@ router.get("/", authenticate, logActivity, async (req, res) => {
     const where = { isActive: true };
     const search = req.query.search;
     const statusFilter = req.query.status;
-    const priorityFilter = req.query.priority;
+    const problemTypeIdFilter = req.query.problemTypeId;
     const categoryFilter = req.query.category;
     const dateFrom = req.query.dateFrom;
     const dateTo = req.query.dateTo;
@@ -141,8 +146,8 @@ router.get("/", authenticate, logActivity, async (req, res) => {
       where.status = statusFilter;
     }
 
-    if (priorityFilter) {
-      where.priority = priorityFilter;
+    if (problemTypeIdFilter) {
+      where.problemTypeId = problemTypeIdFilter;
     }
 
     if (categoryFilter && req.user.role === "admin") {
@@ -169,6 +174,11 @@ router.get("/", authenticate, logActivity, async (req, res) => {
         model: User,
         as: "assignedTechnician",
         attributes: ["id", "fullName"],
+      },
+      {
+        model: ProblemType,
+        as: "problemType",
+        attributes: ["id", "name", "slug"],
       },
     ];
 
@@ -240,6 +250,11 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
         attributes: ["id", "fullName"],
       },
       {
+        model: ProblemType,
+        as: "problemType",
+        attributes: ["id", "name", "slug"],
+      },
+      {
         model: CoAssignment,
         as: "coAssignments",
         include: [
@@ -296,6 +311,11 @@ router.get("/:id", authenticate, logActivity, async (req, res) => {
           model: User,
           as: "assignedTechnician",
           attributes: ["id", "fullName", "username"],
+        },
+        {
+          model: ProblemType,
+          as: "problemType",
+          attributes: ["id", "name", "slug"],
         },
         {
           model: TicketAction,
@@ -383,6 +403,9 @@ router.post(
 
       ticket.assignedTo = req.user.id;
       ticket.status = "Diproses";
+      if (ticket.pickedUpAt == null) {
+        ticket.pickedUpAt = new Date();
+      }
       await ticket.save();
 
       res.json(ticket);
@@ -494,6 +517,7 @@ router.patch(
       }
 
       ticket.status = req.body.status;
+      ticket.lastStatusChangeAt = new Date();
       if (req.body.status === "Selesai") {
         ticket.completedAt = new Date();
       }
@@ -507,16 +531,16 @@ router.patch(
   }
 );
 
-// Update priority
+// Update problem type (tipe masalah)
 router.patch(
-  "/:id/priority",
+  "/:id/problem-type",
   authenticate,
   logActivity,
   [
-    body("priority")
-      .isIn(["tinggi", "sedang", "rendah"])
+    body("problemTypeId")
       .optional()
-      .withMessage("Invalid priority"),
+      .isInt({ min: 1 })
+      .withMessage("problemTypeId must be a positive integer or omit to clear"),
   ],
   async (req, res) => {
     try {
@@ -531,7 +555,6 @@ router.patch(
         return res.status(404).json({ message: "Ticket not found" });
       }
 
-      // Check access
       const isAssigned = ticket.assignedTo === req.user.id;
       const isCoAssigned = await CoAssignment.findOne({
         where: { ticketId: ticket.id, technicianId: req.user.id },
@@ -544,15 +567,28 @@ router.patch(
       if (req.user.role === "admin") {
         return res
           .status(403)
-          .json({ message: "Admin cannot update priority" });
+          .json({ message: "Admin cannot update tipe masalah from this endpoint" });
       }
 
-      ticket.priority = req.body.priority || null;
+      const problemTypeId = req.body.problemTypeId ? parseInt(req.body.problemTypeId, 10) : null;
+      if (problemTypeId != null) {
+        const exists = await ProblemType.findByPk(problemTypeId);
+        if (!exists) {
+          return res.status(400).json({ message: "Tipe masalah tidak ditemukan" });
+        }
+      }
+      ticket.problemTypeId = problemTypeId;
       await ticket.save();
 
-      res.json(ticket);
+      const updated = await Ticket.findByPk(ticket.id, {
+        include: [
+          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          { model: ProblemType, as: "problemType", attributes: ["id", "name", "slug"] },
+        ],
+      });
+      res.json(updated);
     } catch (error) {
-      console.error("Update priority error:", error);
+      console.error("Update problem type error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -660,6 +696,58 @@ router.post(
       res.json(ticket);
     } catch (error) {
       console.error("Upload proof error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Admin: update ticket timestamps (waktu masuk, waktu ambil, waktu terakhir update)
+router.patch(
+  "/:id/admin",
+  authenticate,
+  authorize("admin"),
+  logActivity,
+  [
+    body("createdAt").optional().isISO8601().withMessage("createdAt must be valid ISO date"),
+    body("pickedUpAt").optional().isISO8601().withMessage("pickedUpAt must be valid ISO date"),
+    body("lastStatusChangeAt").optional().isISO8601().withMessage("lastStatusChangeAt must be valid ISO date"),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      const ticket = await Ticket.findByPk(req.params.id);
+      if (!ticket || !ticket.isActive) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      const updateFields = [];
+      if (req.body.createdAt != null) {
+        ticket.changed("createdAt", true);
+        ticket.set("createdAt", new Date(req.body.createdAt), { raw: true });
+        updateFields.push("createdAt");
+      }
+      if (req.body.pickedUpAt != null) {
+        ticket.pickedUpAt = new Date(req.body.pickedUpAt);
+        updateFields.push("pickedUpAt");
+      }
+      if (req.body.lastStatusChangeAt != null) {
+        ticket.lastStatusChangeAt = new Date(req.body.lastStatusChangeAt);
+        updateFields.push("lastStatusChangeAt");
+      }
+      if (updateFields.length > 0) {
+        await ticket.save({ silent: true, fields: updateFields });
+      }
+      const updated = await Ticket.findByPk(ticket.id, {
+        include: [
+          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          { model: ProblemType, as: "problemType", attributes: ["id", "name", "slug"] },
+        ],
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Admin update ticket error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }

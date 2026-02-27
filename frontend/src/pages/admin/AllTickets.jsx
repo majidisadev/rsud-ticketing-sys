@@ -19,7 +19,7 @@ const getInitialState = () => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { search: '', status: '', priority: '', category: '', dateFrom: '', dateTo: '' };
+      const defaults = { search: '', status: '', category: '', problemTypeId: '', dateFrom: '', dateTo: '' };
       const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
       return {
         filters: { ...defaults, ...data.filters },
@@ -29,7 +29,7 @@ const getInitialState = () => {
     }
   } catch (_) {}
   return {
-    filters: { search: '', status: '', priority: '', category: '', dateFrom: '', dateTo: '' },
+    filters: { search: '', status: '', category: '', problemTypeId: '', dateFrom: '', dateTo: '' },
     page: 1,
     perPage: 20
   };
@@ -52,6 +52,7 @@ const AllTicketsAdmin = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState(initialState.filters);
+  const [problemTypes, setProblemTypes] = useState([]);
 
   useEffect(() => {
     fetchTickets();
@@ -61,6 +62,18 @@ const AllTicketsAdmin = () => {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
   }, [filters, page, perPage]);
+
+  useEffect(() => {
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+    fetchProblemTypes();
+  }, []);
 
   const fetchTickets = async () => {
     try {
@@ -241,14 +254,14 @@ const AllTicketsAdmin = () => {
               aria-label="Sampai tanggal"
             />
             <Select
-              value={filters.priority}
-              onChange={(e) => handleFilterChange('priority', e.target.value)}
-              aria-label="Filter prioritas"
+              value={filters.problemTypeId}
+              onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
+              aria-label="Filter tipe masalah"
             >
-              <option value="">Semua Prioritas</option>
-              <option value="tinggi">Tinggi</option>
-              <option value="sedang">Sedang</option>
-              <option value="rendah">Rendah</option>
+              <option value="">Semua Tipe Masalah</option>
+              {problemTypes.map((pt) => (
+                <option key={pt.id} value={pt.id}>{pt.name}</option>
+              ))}
             </Select>
           </div>
         </CardContent>
@@ -348,12 +361,13 @@ const AllTicketsAdmin = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead scope="col">Kategori</TableHead>
                 <TableHead scope="col">Nomor Tiket</TableHead>
-                <TableHead scope="col">Tanggal Masuk</TableHead>
+                <TableHead scope="col">Waktu Masuk</TableHead>
+                <TableHead scope="col">Waktu Pengambilan</TableHead>
+                <TableHead scope="col">Response Time</TableHead>
                 <TableHead scope="col">Pelapor</TableHead>
                 <TableHead scope="col">Teknisi</TableHead>
-                <TableHead scope="col">Prioritas</TableHead>
+                <TableHead scope="col">Tipe Masalah</TableHead>
                 <TableHead scope="col">Status</TableHead>
                 <TableHead scope="col">Aksi</TableHead>
               </TableRow>
@@ -361,17 +375,26 @@ const AllTicketsAdmin = () => {
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="8" className="text-center py-10 text-gray-500">
+                  <TableCell colSpan="9" className="text-center py-10 text-gray-500">
                     Tidak ada tiket
                   </TableCell>
                 </TableRow>
               ) : (
-                tickets.map((ticket) => (
+                tickets.map((ticket) => {
+                  const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
+                    ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
+                    : null;
+                  return (
                   <TableRow key={ticket.id} data-ticket-row>
-                    <TableCell className="font-medium">{ticket.category}</TableCell>
                     <TableCell>{ticket.ticketNumber}</TableCell>
                     <TableCell>
-                      {new Date(ticket.createdAt).toLocaleDateString('id-ID')}
+                      {new Date(ticket.createdAt).toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {responseTimeMinutes != null ? `${responseTimeMinutes} menit` : '-'}
                     </TableCell>
                     <TableCell>
                       {ticket.reporterName} - {ticket.reporterUnit}
@@ -383,7 +406,7 @@ const AllTicketsAdmin = () => {
                         <div className="text-sm text-gray-400">-</div>
                       )}
                     </TableCell>
-                    <TableCell>{ticket.priority || '-'}</TableCell>
+                    <TableCell>{ticket.problemType?.name || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(ticket.status)}>
                         {ticket.status}
@@ -408,7 +431,8 @@ const AllTicketsAdmin = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

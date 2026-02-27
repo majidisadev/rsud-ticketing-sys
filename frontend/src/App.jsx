@@ -14,6 +14,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AllTicketsAdmin from './pages/admin/AllTickets';
 import AdminTicketDetail from './pages/admin/TicketDetail';
+import ProblemTypesSettings from './pages/admin/ProblemTypesSettings';
 
 import TechnicianMyTasks from './pages/technician/MyTasks';
 import TechnicianAllTasks from './pages/technician/AllTasks';
@@ -42,6 +43,7 @@ function AppRoutes() {
                 <Route path="tickets" element={<AllTicketsAdmin />} />
                 <Route path="all-activities" element={<AdminAllActivities />} />
                 <Route path="ticket/:id" element={<AdminTicketDetail />} />
+                <Route path="problem-types" element={<ProblemTypesSettings />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
             </Layout>
