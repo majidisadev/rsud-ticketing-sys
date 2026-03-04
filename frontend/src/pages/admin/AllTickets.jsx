@@ -358,13 +358,16 @@ const AllTicketsAdmin = () => {
       {/* Table */}
       <Card ref={tableCardRef} className="shadow-sm border-gray-200/80 overflow-hidden">
         <CardContent className="p-0">
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Nomor Tiket</TableHead>
                 <TableHead scope="col">Waktu Masuk</TableHead>
                 <TableHead scope="col">Waktu Pengambilan</TableHead>
                 <TableHead scope="col">Response Time</TableHead>
+                <TableHead scope="col">Waktu Selesai/Batal</TableHead>
+                <TableHead scope="col">Selisih Waktu</TableHead>
                 <TableHead scope="col">Pelapor</TableHead>
                 <TableHead scope="col">Teknisi</TableHead>
                 <TableHead scope="col">Tipe Masalah</TableHead>
@@ -375,7 +378,7 @@ const AllTicketsAdmin = () => {
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="9" className="text-center py-10 text-gray-500">
+                  <TableCell colSpan="11" className="text-center py-10 text-gray-500">
                     Tidak ada tiket
                   </TableCell>
                 </TableRow>
@@ -383,6 +386,12 @@ const AllTicketsAdmin = () => {
                 tickets.map((ticket) => {
                   const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
                     ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
+                    : null;
+                  const closedAt = (ticket.status === 'Selesai' || ticket.status === 'Batal') && ticket.lastStatusChangeAt
+                    ? new Date(ticket.lastStatusChangeAt)
+                    : null;
+                  const durationMinutes = closedAt && ticket.createdAt
+                    ? Math.round((closedAt - new Date(ticket.createdAt)) / 60000)
                     : null;
                   return (
                   <TableRow key={ticket.id} data-ticket-row>
@@ -395,6 +404,12 @@ const AllTicketsAdmin = () => {
                     </TableCell>
                     <TableCell>
                       {responseTimeMinutes != null ? `${responseTimeMinutes} menit` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {closedAt ? closedAt.toLocaleString('id-ID') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {durationMinutes != null ? `${durationMinutes} menit` : '-'}
                     </TableCell>
                     <TableCell>
                       {ticket.reporterName} - {ticket.reporterUnit}
@@ -436,6 +451,7 @@ const AllTicketsAdmin = () => {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

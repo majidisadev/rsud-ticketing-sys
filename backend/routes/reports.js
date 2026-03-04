@@ -114,8 +114,9 @@ router.get(
         { header: "Waktu Masuk", key: "createdAt", width: 20 },
         { header: "Waktu Ambil", key: "pickedUpAt", width: 20 },
         { header: "Response Time (menit)", key: "responseTimeMinutes", width: 18 },
-        { header: "Pelapor", key: "reporterName", width: 20 },
-        { header: "Asal Unit", key: "reporterUnit", width: 20 },
+        { header: "Waktu Selesai/Batal", key: "closedAt", width: 20 },
+        { header: "Selisih Waktu (menit)", key: "durationMinutes", width: 18 },
+        { header: "Pelapor", key: "pelapor", width: 35 },
         { header: "Teknisi", key: "technician", width: 20 },
         { header: "Tipe Masalah", key: "problemTypeName", width: 15 },
         { header: "Deskripsi Masalah", key: "description", width: 50 },
@@ -135,13 +136,21 @@ router.get(
         const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
           ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
           : null;
+        const closedAtText = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt
+          ? moment(ticket.lastStatusChangeAt).format("YYYY-MM-DD HH:mm:ss")
+          : "-";
+        const durationMinutes = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt && ticket.createdAt
+          ? Math.round((new Date(ticket.lastStatusChangeAt) - new Date(ticket.createdAt)) / 60000)
+          : null;
+        const pelaporText = [ticket.reporterName, ticket.reporterUnit].filter(Boolean).join(" - ") || "-";
         worksheet.addRow({
           ticketNumber: ticket.ticketNumber,
           createdAt: moment(ticket.createdAt).format("YYYY-MM-DD HH:mm:ss"),
           pickedUpAt: ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("YYYY-MM-DD HH:mm:ss") : "-",
           responseTimeMinutes: responseTimeMinutes != null ? responseTimeMinutes : "-",
-          reporterName: ticket.reporterName,
-          reporterUnit: ticket.reporterUnit,
+          closedAt: closedAtText,
+          durationMinutes: durationMinutes != null ? durationMinutes : "-",
+          pelapor: pelaporText,
           technician: technicianText,
           problemTypeName: ticket.problemType?.name || "-",
           description: ticket.description || "-",
@@ -221,14 +230,13 @@ router.get(
 
       const tableTop = doc.y;
       const rowHeight = 20;
-      const colWidths = [65, 60, 55, 50, 55, 55, 50, 55, 100];
+      const colWidths = [65, 60, 55, 58, 70, 50, 55, 100];
       const headers = [
         "Nomor Tiket",
         "Waktu Masuk",
         "Waktu Ambil",
-        "Resp.Time",
+        "Wkt Selesai/Batal",
         "Pelapor",
-        "Asal Unit",
         "Teknisi",
         "Tipe Mslh",
         "Deskripsi",
@@ -278,18 +286,17 @@ router.get(
           });
         }
         const technicianText = technicians.length ? technicians.join(", ") : "-";
-        const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
-          ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
-          : null;
-        const responseTimeText = responseTimeMinutes != null ? `${responseTimeMinutes} menit` : "-";
+        const closedAtText = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt
+          ? moment(ticket.lastStatusChangeAt).format("DD/MM/YYYY HH:mm")
+          : "-";
+        const pelaporText = [ticket.reporterName, ticket.reporterUnit].filter(Boolean).join(" - ") || "-";
 
         const row = [
           ticket.ticketNumber,
           moment(ticket.createdAt).format("DD/MM/YYYY HH:mm"),
           ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("DD/MM/YYYY HH:mm") : "-",
-          responseTimeText,
-          ticket.reporterName,
-          ticket.reporterUnit,
+          closedAtText,
+          pelaporText,
           technicianText,
           ticket.problemType?.name || "-",
           ticket.description || "-",
