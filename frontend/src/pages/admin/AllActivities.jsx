@@ -131,11 +131,14 @@ const AllActivities = () => {
     }
   };
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('id-ID', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -325,7 +328,9 @@ const AllActivities = () => {
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Teknisi</TableHead>
-                <TableHead scope="col">Tanggal</TableHead>
+                <TableHead scope="col">Waktu Masuk</TableHead>
+                <TableHead scope="col">Waktu Selesai/Batal</TableHead>
+                <TableHead scope="col">Selisih Waktu</TableHead>
                 <TableHead scope="col">Judul Aktivitas / Deskripsi Masalah</TableHead>
                 <TableHead scope="col">Tipe</TableHead>
                 <TableHead scope="col">Status</TableHead>
@@ -334,7 +339,7 @@ const AllActivities = () => {
             <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="5" className="text-center py-10 text-gray-500">
+                  <TableCell colSpan="7" className="text-center py-10 text-gray-500">
                     Tidak ada data
                   </TableCell>
                 </TableRow>
@@ -358,7 +363,11 @@ const AllActivities = () => {
                         })()}
                       </div>
                     </TableCell>
-                    <TableCell>{formatDate(item.date)}</TableCell>
+                    <TableCell>{formatDateTime(item.entryTime)}</TableCell>
+                    <TableCell>{formatDateTime(item.completedAt)}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {item.durationMinutes != null ? `${item.durationMinutes} menit` : '-'}
+                    </TableCell>
                     <TableCell>
                       <div className="max-w-md">
                         <p className="truncate">{item.title}</p>

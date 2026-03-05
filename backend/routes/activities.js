@@ -432,24 +432,42 @@ async function getCombinedDataForAdmin(filters) {
     order: [['createdAt', 'DESC']]
   });
 
-  const activityRows = activities.map(a => ({
-    id: `activity-${a.id}`,
-    type: 'activity',
-    date: a.currentDate,
-    title: a.title,
-    status: a.status,
-    technicianDisplay: a.technician ? a.technician.fullName : '-',
-    ticketNumber: null
-  }));
+  const activityRows = activities.map(a => {
+    const entryTime = a.startTime;
+    const completedAt = (a.status === 'selesai' || a.status === 'batal') ? a.endTime : null;
+    const durationMinutes = entryTime && completedAt
+      ? Math.round((new Date(completedAt) - new Date(entryTime)) / 60000)
+      : null;
+    return {
+      id: `activity-${a.id}`,
+      type: 'activity',
+      date: a.currentDate,
+      entryTime: entryTime ? new Date(entryTime).toISOString() : null,
+      completedAt: completedAt ? new Date(completedAt).toISOString() : null,
+      durationMinutes,
+      title: a.title,
+      status: a.status,
+      technicianDisplay: a.technician ? a.technician.fullName : '-',
+      ticketNumber: null
+    };
+  });
 
   const ticketRows = tickets.map(t => {
     const main = t.assignedTechnician ? t.assignedTechnician.fullName : '';
     const coNames = (t.coAssignments || []).map(c => c.technician && c.technician.fullName).filter(Boolean);
     const technicianDisplay = main ? (coNames.length ? `${main}, Co: ${coNames.join(', ')}` : main) : (coNames.length ? `Co: ${coNames.join(', ')}` : '-');
+    const entryTime = t.createdAt;
+    const completedAt = (t.status === 'Selesai' || t.status === 'Batal') ? t.lastStatusChangeAt : null;
+    const durationMinutes = entryTime && completedAt
+      ? Math.round((new Date(completedAt) - new Date(entryTime)) / 60000)
+      : null;
     return {
       id: `ticket-${t.id}`,
       type: 'ticket',
       date: t.createdAt.toISOString().split('T')[0],
+      entryTime: entryTime ? new Date(entryTime).toISOString() : null,
+      completedAt: completedAt ? new Date(completedAt).toISOString() : null,
+      durationMinutes,
       title: t.description,
       status: (t.status === 'Baru' ? 'diproses' : t.status.toLowerCase()),
       technicianDisplay,
@@ -538,7 +556,9 @@ router.get(
 
       worksheet.columns = [
         { header: 'Teknisi', key: 'technicianDisplay', width: 35 },
-        { header: 'Tanggal', key: 'date', width: 14 },
+        { header: 'Waktu Masuk', key: 'entryTimeDisplay', width: 18 },
+        { header: 'Waktu Selesai/Batal', key: 'completedAtDisplay', width: 20 },
+        { header: 'Selisih Waktu', key: 'durationMinutesDisplay', width: 18 },
         { header: 'Judul Aktivitas / Deskripsi Masalah', key: 'title', width: 45 },
         { header: 'Tipe', key: 'typeLabel', width: 12 },
         { header: 'Status', key: 'statusLabel', width: 12 }
@@ -547,12 +567,16 @@ router.get(
 
       const statusLabels = { diproses: 'Diproses', selesai: 'Selesai', batal: 'Batal' };
       data.forEach((item) => {
-        const dateStr = item.date ? moment(item.date).format('DD/MM/YYYY') : '-';
+        const entryTimeStr = item.entryTime ? moment(item.entryTime).format('DD/MM/YYYY HH:mm') : '-';
+        const completedAtStr = item.completedAt ? moment(item.completedAt).format('DD/MM/YYYY HH:mm') : '-';
+        const durationStr = item.durationMinutes != null ? `${item.durationMinutes} menit` : '-';
         const titleStr = (item.title || '-') + (item.ticketNumber ? ` (${item.ticketNumber})` : '');
         const techStr = (item.technicianDisplay || '-').replace(/, Co: /g, ', ');
         worksheet.addRow({
           technicianDisplay: techStr,
-          date: dateStr,
+          entryTimeDisplay: entryTimeStr,
+          completedAtDisplay: completedAtStr,
+          durationMinutesDisplay: durationStr,
           title: titleStr,
           typeLabel: item.type === 'activity' ? 'Aktivitas' : 'Tugas',
           statusLabel: statusLabels[item.status] || item.status
@@ -608,8 +632,8 @@ router.get(
 
       const tableTop = doc.y;
       const rowHeight = 20;
-      const colWidths = [70, 65, 200, 60, 60];
-      const headers = ['Teknisi', 'Tanggal', 'Judul / Deskripsi', 'Tipe', 'Status'];
+      const colWidths = [60, 52, 52, 38, 140, 50, 50];
+      const headers = ['Teknisi', 'Waktu Masuk', 'Waktu Selesai/Batal', 'Selisih Waktu', 'Judul / Deskripsi', 'Tipe', 'Status'];
 
       let y = tableTop;
       doc.fontSize(9).font('Helvetica-Bold');
@@ -643,13 +667,15 @@ router.get(
           doc.font('Helvetica').fontSize(8).fillColor('#000000');
         }
 
-        const techStr = ((item.technicianDisplay || '-').replace(/, Co: /g, ', ')).substring(0, 25) + ((item.technicianDisplay || '').length > 25 ? '...' : '');
-        const dateStr = item.date ? moment(item.date).format('DD/MM/YYYY') : '-';
-        const titleStr = (item.title || '-').substring(0, 60) + ((item.title || '').length > 60 ? '...' : '');
+        const techStr = ((item.technicianDisplay || '-').replace(/, Co: /g, ', ')).substring(0, 18) + ((item.technicianDisplay || '').length > 18 ? '...' : '');
+        const entryTimeStr = item.entryTime ? moment(item.entryTime).format('DD/MM/YY HH:mm') : '-';
+        const completedAtStr = item.completedAt ? moment(item.completedAt).format('DD/MM/YY HH:mm') : '-';
+        const durationStr = item.durationMinutes != null ? `${item.durationMinutes} menit` : '-';
+        const titleStr = (item.title || '-').substring(0, 45) + ((item.title || '').length > 45 ? '...' : '');
         const typeStr = item.type === 'activity' ? 'Aktivitas' : 'Tugas';
         const statusStr = statusLabels[item.status] || item.status;
 
-        [techStr, dateStr, titleStr, typeStr, statusStr].forEach((cell, i) => {
+        [techStr, entryTimeStr, completedAtStr, durationStr, titleStr, typeStr, statusStr].forEach((cell, i) => {
           doc.text(
             cell,
             50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),

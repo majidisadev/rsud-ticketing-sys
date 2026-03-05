@@ -204,7 +204,7 @@ const TrackTicket = () => {
       return;
     }
     const technician = technicians.find(
-      (t) => t.id === parseInt(selectedTechnician)
+      (t) => t.id === parseInt(selectedTechnician),
     );
     if (!technician?.phoneNumber) {
       alert("Teknisi tidak memiliki nomor WhatsApp");
@@ -276,7 +276,7 @@ const TrackTicket = () => {
 
     document.addEventListener("keydown", handleKeyDown);
     const firstFocusable = modalRef.current?.querySelector(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     if (firstFocusable) firstFocusable.focus();
 
@@ -309,7 +309,7 @@ const TrackTicket = () => {
         duration: 320,
         delay: stagger(50),
       },
-      "-=200"
+      "-=200",
     );
 
     if (actionEls.length) {
@@ -321,7 +321,7 @@ const TrackTicket = () => {
           duration: 300,
           delay: stagger(60),
         },
-        "-=100"
+        "-=100",
       );
     }
 
@@ -340,7 +340,7 @@ const TrackTicket = () => {
     animeAnimate(
       card,
       { opacity: { to: 1 }, scale: { to: 1 } },
-      { duration: 280, ease: "outExpo" }
+      { duration: 280, ease: "outExpo" },
     );
   }, [showWhatsAppModal]);
 
@@ -390,8 +390,8 @@ const TrackTicket = () => {
               Tiket Tidak Ditemukan
             </h1>
             <p className="text-slate-600 text-sm mb-6">
-              Nomor tiket tidak valid atau telah dihapus. Periksa kembali URL atau
-              buat tiket baru.
+              Nomor tiket tidak valid atau telah dihapus. Periksa kembali URL
+              atau buat tiket baru.
             </p>
             <a href="/">
               <Button
@@ -442,7 +442,14 @@ const TrackTicket = () => {
             ticket.assignedTechnician.phoneNumber
               ? ` – ${ticket.assignedTechnician.phoneNumber}`
               : ""
-          }${ticket.coAssignments?.length ? ` (+ ${ticket.coAssignments.map((ca) => ca.technician?.fullName).filter(Boolean).join(", ")})` : ""}`
+          }${
+            ticket.coAssignments?.length
+              ? ` (+ ${ticket.coAssignments
+                  .map((ca) => ca.technician?.fullName)
+                  .filter(Boolean)
+                  .join(", ")})`
+              : ""
+          }`
         : "–",
       icon: Wrench,
     },
@@ -478,7 +485,9 @@ const TrackTicket = () => {
                     size="sm"
                     onClick={handleCopyTicketNumber}
                     className="h-8 w-8 p-0 rounded-md"
-                    aria-label={copied ? "Nomor tiket disalin" : "Salin nomor tiket"}
+                    aria-label={
+                      copied ? "Nomor tiket disalin" : "Salin nomor tiket"
+                    }
                     title={copied ? "Disalin" : "Salin nomor tiket"}
                   >
                     {copied ? (
@@ -520,7 +529,9 @@ const TrackTicket = () => {
                     aria-label="Kirim tiket ke WhatsApp"
                   >
                     <MessageCircle className="h-4 w-4" aria-hidden />
-                    <span className="hidden sm:inline">WhatsApp</span>
+                    <span className="hidden sm:inline">
+                      Kirim ke WhatsApp Teknisi
+                    </span>
                   </Button>
                 )}
                 <Badge
@@ -560,7 +571,10 @@ const TrackTicket = () => {
                       <p className="text-xs text-slate-500 font-medium">
                         {row.label}
                       </p>
-                      <p className="text-slate-800 font-medium truncate" title={row.value}>
+                      <p
+                        className="text-slate-800 font-medium truncate"
+                        title={row.value}
+                      >
                         {row.value}
                       </p>
                     </div>
@@ -696,7 +710,10 @@ const TrackTicket = () => {
               <CardTitle id="whatsapp-modal-title">
                 Kirim Tiket ke WhatsApp
               </CardTitle>
-              <p id="whatsapp-modal-desc" className="text-sm text-slate-600 mt-1">
+              <p
+                id="whatsapp-modal-desc"
+                className="text-sm text-slate-600 mt-1"
+              >
                 Pilih teknisi dan kirim detail tiket ke nomor WhatsApp mereka.
               </p>
             </CardHeader>
