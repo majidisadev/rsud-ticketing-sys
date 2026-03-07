@@ -25,7 +25,7 @@ const Layout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
     { path: '/admin/tickets', label: 'Semua Tiket', icon: FileText },
     { path: '/admin/all-activities', label: 'Semua Aktivitas', icon: CalendarDays },
-    { path: '/admin/users', label: 'Manajemen User', icon: Users },
+    { path: '/admin/users', label: 'Pengaturan User', icon: Users },
     { path: '/admin/problem-types', label: 'Pengaturan Tipe Masalah', icon: Tag }
   ];
 

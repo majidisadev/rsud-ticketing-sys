@@ -160,9 +160,9 @@ const UserManagement = () => {
   }
 
   return (
-    <main ref={containerRef} className="space-y-5 sm:space-y-6" aria-label="Manajemen user">
+    <main ref={containerRef} className="space-y-5 sm:space-y-6" aria-label="Pengaturan user">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Manajemen User</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Pengaturan User</h1>
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             onClick={handleToggleIpsrs}
@@ -311,6 +311,7 @@ const UserManagement = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    placeholder="Minimal 6 karakter"
                     required={!editingUser}
                   />
                 </div>

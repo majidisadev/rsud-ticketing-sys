@@ -143,7 +143,7 @@ Ringkasan fitur: notifikasi real-time dengan suara, mobile-first PWA, role-based
 ### Admin
 
 - Dashboard dengan charts (pie, line, bar)
-- Manajemen user
+- Pengaturan user
 - Monitoring semua tiket
 - Export laporan (Excel/PDF)
 - Soft delete tiket
