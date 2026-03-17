@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select } from '../../components/ui/select';
+import { StatusFilterSelect } from '../../components/StatusFilterSelect';
 import { ArrowLeft, Upload, Users, UserPlus, CheckCircle, Ticket, FileText, Image } from 'lucide-react';
 
 const TicketDetail = () => {
@@ -272,60 +273,61 @@ const TicketDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm text-gray-600">Kategori</Label>
-                <p className="font-medium text-gray-900">{ticket.category}</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[120px]">
+                  <Label className="text-sm text-gray-600">Status</Label>
+                  {canEdit && user?.role !== 'admin' ? (
+                    <StatusFilterSelect
+                      variant="ticket"
+                      includeBaru={false}
+                      showAllOption={false}
+                      value={ticket.status}
+                      onChange={handleStatusChange}
+                      aria-label="Ubah status tiket"
+                    />
+                  ) : (
+                    <Badge variant={getStatusVariant(ticket.status)} className="mt-1">
+                      {ticket.status}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex-1 min-w-[120px]">
+                  <Label className="text-sm text-gray-600">Tipe Masalah</Label>
+                  {canEdit && user?.role !== 'admin' ? (
+                    <Select
+                      value={ticket.problemTypeId ?? (problemTypes[0]?.id ?? '')}
+                      onChange={(e) => handleProblemTypeChange(e.target.value || null)}
+                    >
+                      {problemTypes.map((pt) => (
+                        <option key={pt.id} value={pt.id}>{pt.name}</option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <div className="mt-1">
+                      {ticket.problemType?.name ? (
+                        <Badge variant={getPriorityVariant(ticket.problemType.slug || ticket.problemType.name)}>
+                          {ticket.problemType.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <Label className="text-sm text-gray-600">Status</Label>
-                {canEdit && user?.role !== 'admin' ? (
-                  <Select
-                    value={ticket.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                  >
-                    <option value="Diproses">Diproses</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Batal">Batal</option>
-                  </Select>
-                ) : (
-                  <Badge variant={getStatusVariant(ticket.status)} className="mt-1">
-                    {ticket.status}
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Tipe Masalah</Label>
-                {canEdit && user?.role !== 'admin' ? (
-                  <Select
-                    value={ticket.problemTypeId ?? ''}
-                    onChange={(e) => handleProblemTypeChange(e.target.value || null)}
-                  >
-                    <option value="">-</option>
-                    {problemTypes.map((pt) => (
-                      <option key={pt.id} value={pt.id}>{pt.name}</option>
-                    ))}
-                  </Select>
-                ) : (
-                  <div className="mt-1">
-                    {ticket.problemType?.name ? (
-                      <Badge variant={getPriorityVariant(ticket.problemType.slug || ticket.problemType.name)}>
-                        {ticket.problemType.name}
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-500">-</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Waktu Pengambilan</Label>
-                <p className="font-medium text-gray-900">
-                  {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Teknisi</Label>
-                <p className="font-medium text-gray-900">{ticket.assignedTechnician?.fullName || '-'}</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Waktu Pengambilan</Label>
+                  <p className="font-medium text-gray-900">
+                    {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
+                  </p>
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Waktu Terakhir Update</Label>
+                  <p className="font-medium text-gray-900">
+                    {ticket.lastStatusChangeAt ? new Date(ticket.lastStatusChangeAt).toLocaleString('id-ID') : '-'}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -338,21 +340,25 @@ const TicketDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm text-gray-600">Nama</Label>
-                <p className="font-medium text-gray-900">{ticket.reporterName}</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Nama</Label>
+                  <p className="font-medium text-gray-900">{ticket.reporterName}</p>
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Unit/Ruangan</Label>
+                  <p className="font-medium text-gray-900">{ticket.reporterUnit}</p>
+                </div>
               </div>
-              <div>
-                <Label className="text-sm text-gray-600">Unit/Ruangan</Label>
-                <p className="font-medium text-gray-900">{ticket.reporterUnit}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Nomor Telepon</Label>
-                <p className="font-medium text-gray-900">{ticket.reporterPhone}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Waktu Masuk</Label>
-                <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Nomor Telepon</Label>
+                  <p className="font-medium text-gray-900">{ticket.reporterPhone}</p>
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <Label className="text-sm text-gray-600">Waktu Masuk</Label>
+                  <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

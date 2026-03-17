@@ -6,6 +6,7 @@ import api, { getBaseUrl } from '../../config/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
+import { StatusFilterSelect } from '../../components/StatusFilterSelect';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -569,15 +570,12 @@ const MyActivities = () => {
                     className="pl-10"
                   />
                 </div>
-                <Select
+                <StatusFilterSelect
+                  variant="activity"
                   value={reportFilters.status}
-                  onChange={(e) => setReportFilters(prev => ({ ...prev, status: e.target.value }))}
-                >
-                  <option value="">Semua Status</option>
-                  <option value="diproses">Diproses</option>
-                  <option value="selesai">Selesai</option>
-                  <option value="batal">Batal</option>
-                </Select>
+                  onChange={(v) => setReportFilters(prev => ({ ...prev, status: v }))}
+                  aria-label="Filter status laporan"
+                />
                 <Input
                   type="date"
                   value={reportFilters.dateFrom}

@@ -403,6 +403,7 @@ router.post(
 
       ticket.assignedTo = req.user.id;
       ticket.status = "Diproses";
+      ticket.lastStatusChangeAt = new Date();
       if (ticket.pickedUpAt == null) {
         ticket.pickedUpAt = new Date();
       }

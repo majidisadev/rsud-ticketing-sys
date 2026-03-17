@@ -224,7 +224,6 @@ const TrackTicket = () => {
       const message =
         `*Detail Tiket*\n\n` +
         `Nomor Tiket: ${ticket.ticketNumber}\n` +
-        `Kategori: ${ticket.category}\n` +
         `Status: ${ticket.status}\n` +
         `Pelapor: ${ticket.reporterName}\n` +
         `Unit: ${ticket.reporterUnit}\n` +
@@ -411,11 +410,6 @@ const TrackTicket = () => {
 
   const detailRows = [
     {
-      label: "Kategori",
-      value: ticket.category,
-      icon: FileText,
-    },
-    {
       label: "Pelapor",
       value: ticket.reporterName,
       icon: User,
@@ -529,9 +523,7 @@ const TrackTicket = () => {
                     aria-label="Kirim tiket ke WhatsApp"
                   >
                     <MessageCircle className="h-4 w-4" aria-hidden />
-                    <span className="hidden sm:inline">
-                      Kirim ke WhatsApp Teknisi
-                    </span>
+                    <span className="inline">Kirim ke WhatsApp Teknisi</span>
                   </Button>
                 )}
                 <Badge
@@ -720,9 +712,7 @@ const TrackTicket = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="technician-select">
-                    Pilih Teknisi {ticket.category}
-                  </Label>
+                  <Label htmlFor="technician-select">Pilih Teknisi</Label>
                   <Select
                     id="technician-select"
                     value={selectedTechnician}

@@ -6,6 +6,7 @@ import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useA
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
+import { StatusFilterSelect } from '../../components/StatusFilterSelect';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -187,18 +188,13 @@ const TechnicianAllTasks = () => {
             </div>
             <div>
               <Label htmlFor="all-tasks-status" className="sr-only">Status</Label>
-              <Select
+              <StatusFilterSelect
                 id="all-tasks-status"
+                variant="ticket"
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
+                onChange={(v) => handleFilterChange('status', v)}
                 aria-label="Filter berdasarkan status"
-              >
-                <option value="">Semua Status</option>
-                <option value="Baru">Baru</option>
-                <option value="Diproses">Diproses</option>
-                <option value="Selesai">Selesai</option>
-                <option value="Batal">Batal</option>
-              </Select>
+              />
             </div>
             <div>
               <Label htmlFor="all-tasks-problem-type" className="sr-only">Tipe Masalah</Label>

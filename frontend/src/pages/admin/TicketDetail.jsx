@@ -55,14 +55,6 @@ const AdminTicketDetail = () => {
     return variants[status] || 'secondary';
   };
 
-  const getProblemTypeVariant = (slugOrName) => {
-    const s = (slugOrName || '').toLowerCase();
-    if (s === 'tinggi') return 'destructive';
-    if (s === 'sedang') return 'warning';
-    if (s === 'rendah') return 'success';
-    return 'secondary';
-  };
-
   const startEditTimes = () => {
     setTimeForm({
       createdAt: toDatetimeLocal(ticket.createdAt),
@@ -140,9 +132,6 @@ const AdminTicketDetail = () => {
         </div>
         <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
           <Badge variant={getStatusVariant(ticket.status)}>{ticket.status}</Badge>
-          {ticket.problemType?.name && (
-            <Badge variant={getProblemTypeVariant(ticket.problemType.slug || ticket.problemType.name)}>{ticket.problemType.name}</Badge>
-          )}
         </div>
       </header>
 
