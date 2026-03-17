@@ -1,19 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../../config/api';
-import ActionModal from '../../components/ActionModal';
-import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useAdminPageAnimation';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { StatusFilterSelect } from '../../components/StatusFilterSelect';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Badge } from '../../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Label } from '../../components/ui/label';
-import { Search, Eye, Plus, CheckCircle, Inbox, Clock, XCircle, ListTodo } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import api from "../../config/api";
+import ActionModal from "../../components/ActionModal";
+import {
+  useAdminPageAnimation,
+  useStaggerListAnimation,
+} from "../../hooks/useAdminPageAnimation";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Select } from "../../components/ui/select";
+import { StatusFilterSelect } from "../../components/StatusFilterSelect";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+import { Badge } from "../../components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Label } from "../../components/ui/label";
+import {
+  Search,
+  Eye,
+  Plus,
+  CheckCircle,
+  Inbox,
+  Clock,
+  XCircle,
+  ListTodo,
+} from "lucide-react";
 
-const STORAGE_KEY = 'allTasksFilters';
+const STORAGE_KEY = "allTasksFilters";
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
 const getInitialState = () => {
@@ -21,19 +45,33 @@ const getInitialState = () => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { search: '', status: '', problemTypeId: '', dateFrom: '', dateTo: '' };
-      const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
+      const defaults = {
+        search: "",
+        status: "",
+        problemTypeId: "",
+        dateFrom: "",
+        dateTo: "",
+      };
+      const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage))
+        ? Number(data.perPage)
+        : 20;
       return {
         filters: { ...defaults, ...data.filters },
-        page: typeof data.page === 'number' ? data.page : 1,
-        perPage
+        page: typeof data.page === "number" ? data.page : 1,
+        perPage,
       };
     }
   } catch (_) {}
   return {
-    filters: { search: '', status: '', problemTypeId: '', dateFrom: '', dateTo: '' },
+    filters: {
+      search: "",
+      status: "",
+      problemTypeId: "",
+      dateFrom: "",
+      dateTo: "",
+    },
     page: 1,
-    perPage: 20
+    perPage: 20,
   };
 };
 
@@ -54,8 +92,12 @@ const TechnicianAllTasks = () => {
   const cardStatRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const tableBodyRef = useRef(null);
 
-  useAdminPageAnimation({ containerRef, cardRefs: cardStatRefs, enabled: !loading });
-  useStaggerListAnimation(tableBodyRef, 'tr', !loading && tickets.length > 0);
+  useAdminPageAnimation({
+    containerRef,
+    cardRefs: cardStatRefs,
+    enabled: !loading,
+  });
+  useStaggerListAnimation(tableBodyRef, "tr", !loading && tickets.length > 0);
 
   useEffect(() => {
     fetchTickets();
@@ -65,17 +107,20 @@ const TechnicianAllTasks = () => {
   useEffect(() => {
     const fetchProblemTypes = async () => {
       try {
-        const res = await api.get('/problem-types');
+        const res = await api.get("/problem-types");
         setProblemTypes(res.data || []);
       } catch (e) {
-        console.error('Fetch problem types error:', e);
+        console.error("Fetch problem types error:", e);
       }
     };
     fetchProblemTypes();
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ filters, page, perPage }),
+    );
   }, [filters, page, perPage]);
 
   const fetchTickets = async () => {
@@ -83,14 +128,14 @@ const TechnicianAllTasks = () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: perPage.toString(),
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
+        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v)),
       });
       const res = await api.get(`/tickets?${params}`);
       setTickets(res.data.tickets);
       setTotalPages(res.data.totalPages);
       setTotalItems(res.data.total ?? 0);
     } catch (error) {
-      console.error('Fetch tickets error:', error);
+      console.error("Fetch tickets error:", error);
     } finally {
       setLoading(false);
     }
@@ -102,7 +147,7 @@ const TechnicianAllTasks = () => {
   };
 
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
     setPage(1);
   };
 
@@ -110,9 +155,9 @@ const TechnicianAllTasks = () => {
     try {
       await api.post(`/tickets/${ticketId}/take`);
       fetchTickets();
-      alert('Tiket berhasil diambil');
+      alert("Tiket berhasil diambil");
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
@@ -123,20 +168,20 @@ const TechnicianAllTasks = () => {
 
   const getStatusVariant = (status) => {
     const variants = {
-      Baru: 'default',
-      Diproses: 'warning',
-      Selesai: 'success',
-      Batal: 'destructive'
+      Baru: "default",
+      Diproses: "warning",
+      Selesai: "success",
+      Batal: "destructive",
     };
-    return variants[status] || 'secondary';
+    return variants[status] || "secondary";
   };
 
   const getProblemTypeColor = (slugOrName) => {
-    const s = (slugOrName || '').toLowerCase();
-    if (s === 'rendah') return 'text-green-600 font-semibold';
-    if (s === 'sedang') return 'text-yellow-600 font-semibold';
-    if (s === 'tinggi') return 'text-red-600 font-semibold';
-    return '';
+    const s = (slugOrName || "").toLowerCase();
+    if (s === "rendah") return "text-green-600 font-semibold";
+    if (s === "sedang") return "text-yellow-600 font-semibold";
+    if (s === "tinggi") return "text-red-600 font-semibold";
+    return "";
   };
 
   if (loading) {
@@ -156,57 +201,81 @@ const TechnicianAllTasks = () => {
   }
 
   return (
-    <main ref={containerRef} className="space-y-4 sm:space-y-6" aria-labelledby="all-tasks-title">
+    <main
+      ref={containerRef}
+      className="space-y-4 sm:space-y-6"
+      aria-labelledby="all-tasks-title"
+    >
       <header className="flex flex-col gap-1">
-        <h1 id="all-tasks-title" className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <h1
+          id="all-tasks-title"
+          className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2"
+        >
           <ListTodo className="w-7 h-7 text-blue-600" aria-hidden />
           Semua Tugas
         </h1>
-        <p className="text-sm text-gray-500">Lihat dan ambil tiket yang tersedia</p>
+        <p className="text-sm text-gray-500">
+          Lihat dan ambil tiket yang tersedia
+        </p>
       </header>
 
       {/* Filters */}
       <Card className="transition-shadow duration-200 hover:shadow-md">
         <CardHeader>
-          <CardTitle className="text-lg" id="filter-heading">Filter</CardTitle>
+          <CardTitle className="text-lg" id="filter-heading">
+            Filter
+          </CardTitle>
         </CardHeader>
         <CardContent aria-labelledby="filter-heading">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
             <div className="relative">
-              <Label htmlFor="all-tasks-search" className="sr-only">Cari</Label>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
+              <Label htmlFor="all-tasks-search" className="sr-only">
+                Cari
+              </Label>
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                aria-hidden
+              />
               <Input
                 id="all-tasks-search"
                 type="search"
                 placeholder="Cari nomor tiket, pelapor, unit..."
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
                 className="pl-10"
                 aria-label="Cari nomor tiket, pelapor, atau unit"
                 autoComplete="off"
               />
             </div>
             <div>
-              <Label htmlFor="all-tasks-status" className="sr-only">Status</Label>
+              <Label htmlFor="all-tasks-status" className="sr-only">
+                Status
+              </Label>
               <StatusFilterSelect
                 id="all-tasks-status"
                 variant="ticket"
                 value={filters.status}
-                onChange={(v) => handleFilterChange('status', v)}
+                onChange={(v) => handleFilterChange("status", v)}
                 aria-label="Filter berdasarkan status"
               />
             </div>
             <div>
-              <Label htmlFor="all-tasks-problem-type" className="sr-only">Tipe Masalah</Label>
+              <Label htmlFor="all-tasks-problem-type" className="sr-only">
+                Tipe Masalah
+              </Label>
               <Select
                 id="all-tasks-problem-type"
                 value={filters.problemTypeId}
-                onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("problemTypeId", e.target.value)
+                }
                 aria-label="Filter berdasarkan tipe masalah"
               >
                 <option value="">Semua Tipe Masalah</option>
                 {problemTypes.map((pt) => (
-                  <option key={pt.id} value={pt.id}>{pt.name}</option>
+                  <option key={pt.id} value={pt.id}>
+                    {pt.name}
+                  </option>
                 ))}
               </Select>
             </div>
@@ -218,7 +287,7 @@ const TechnicianAllTasks = () => {
                 id="all-tasks-date-from"
                 type="date"
                 value={filters.dateFrom}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
                 aria-label="Filter dari tanggal"
               />
             </div>
@@ -228,7 +297,7 @@ const TechnicianAllTasks = () => {
                 id="all-tasks-date-to"
                 type="date"
                 value={filters.dateTo}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                onChange={(e) => handleFilterChange("dateTo", e.target.value)}
                 aria-label="Filter sampai tanggal"
               />
             </div>
@@ -237,8 +306,14 @@ const TechnicianAllTasks = () => {
       </Card>
 
       {/* Status cards */}
-      <section aria-label="Ringkasan status tiket" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card ref={cardStatRefs[0]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-blue-500">
+      <section
+        aria-label="Ringkasan status tiket"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      >
+        <Card
+          ref={cardStatRefs[0]}
+          className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-blue-500"
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-xl" aria-hidden>
@@ -246,14 +321,20 @@ const TechnicianAllTasks = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Baru</p>
-                <p className="text-xl font-bold text-blue-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Baru').length}
+                <p
+                  className="text-xl font-bold text-blue-600"
+                  aria-live="polite"
+                >
+                  {tickets.filter((t) => t.status === "Baru").length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card ref={cardStatRefs[1]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-amber-500">
+        <Card
+          ref={cardStatRefs[1]}
+          className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-amber-500"
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 rounded-xl" aria-hidden>
@@ -261,14 +342,20 @@ const TechnicianAllTasks = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Diproses</p>
-                <p className="text-xl font-bold text-amber-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Diproses').length}
+                <p
+                  className="text-xl font-bold text-amber-600"
+                  aria-live="polite"
+                >
+                  {tickets.filter((t) => t.status === "Diproses").length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card ref={cardStatRefs[2]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-green-500">
+        <Card
+          ref={cardStatRefs[2]}
+          className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-green-500"
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-xl" aria-hidden>
@@ -276,14 +363,20 @@ const TechnicianAllTasks = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Selesai</p>
-                <p className="text-xl font-bold text-green-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Selesai').length}
+                <p
+                  className="text-xl font-bold text-green-600"
+                  aria-live="polite"
+                >
+                  {tickets.filter((t) => t.status === "Selesai").length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card ref={cardStatRefs[3]} className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-red-500">
+        <Card
+          ref={cardStatRefs[3]}
+          className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-red-500"
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 rounded-xl" aria-hidden>
@@ -291,8 +384,11 @@ const TechnicianAllTasks = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Batal</p>
-                <p className="text-xl font-bold text-red-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Batal').length}
+                <p
+                  className="text-xl font-bold text-red-600"
+                  aria-live="polite"
+                >
+                  {tickets.filter((t) => t.status === "Batal").length}
                 </p>
               </div>
             </div>
@@ -303,7 +399,9 @@ const TechnicianAllTasks = () => {
       {/* Table - Pagination controls and Export */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
-          <label htmlFor="per-page-tasks" className="text-sm text-gray-600">Tampilkan</label>
+          <label htmlFor="per-page-tasks" className="text-sm text-gray-600">
+            Tampilkan
+          </label>
           <Select
             id="per-page-tasks"
             value={String(perPage)}
@@ -312,14 +410,17 @@ const TechnicianAllTasks = () => {
             aria-label="Jumlah baris per halaman"
           >
             {PER_PAGE_OPTIONS.map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </Select>
           <span className="text-sm text-gray-600">per halaman</span>
         </div>
         {totalItems > 0 && (
           <p className="text-sm text-gray-600" role="status">
-            Menampilkan {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} dari {totalItems} data
+            Menampilkan {(page - 1) * perPage + 1}–
+            {Math.min(page * perPage, totalItems)} dari {totalItems} data
           </p>
         )}
       </div>
@@ -342,62 +443,75 @@ const TechnicianAllTasks = () => {
             <TableBody ref={tableBodyRef}>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="7" className="text-center py-12 text-gray-500">
+                  <TableCell
+                    colSpan="7"
+                    className="text-center py-12 text-gray-500"
+                  >
                     <p>Tidak ada tiket yang sesuai filter.</p>
                   </TableCell>
                 </TableRow>
               ) : (
                 tickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell>{ticket.ticketNumber}</TableCell>
-                  <TableCell>
-                    {new Date(ticket.createdAt).toLocaleString('id-ID')}
-                  </TableCell>
-                  <TableCell>
-                    {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {ticket.reporterName} - {ticket.reporterUnit}
-                  </TableCell>
-                  <TableCell className={getProblemTypeColor(ticket.problemType?.slug || ticket.problemType?.name)}>
-                    {ticket.problemType?.name || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(ticket.status)}>
-                      {ticket.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {ticket.status === 'Baru' && (
+                  <TableRow key={ticket.id}>
+                    <TableCell>{ticket.ticketNumber}</TableCell>
+                    <TableCell>
+                      {new Date(ticket.createdAt).toLocaleString("id-ID")}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.pickedUpAt
+                        ? new Date(ticket.pickedUpAt).toLocaleString("id-ID")
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.reporterName} - {ticket.reporterUnit}
+                    </TableCell>
+                    <TableCell
+                      className={getProblemTypeColor(
+                        ticket.problemType?.slug || ticket.problemType?.name,
+                      )}
+                    >
+                      {ticket.problemType?.name || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(ticket.status)}>
+                        {ticket.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {ticket.status === "Baru" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTakeTicket(ticket.id)}
+                            className="text-green-600 hover:text-green-700 focus-visible:ring-green-500"
+                            aria-label={`Ambil tiket ${ticket.ticketNumber}`}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" aria-hidden />
+                            Ambil
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleTakeTicket(ticket.id)}
-                          className="text-green-600 hover:text-green-700 focus-visible:ring-green-500"
-                          aria-label={`Ambil tiket ${ticket.ticketNumber}`}
+                          onClick={() => handleOpenActionModal(ticket)}
+                          aria-label={`Tambah tindakan untuk tiket ${ticket.ticketNumber}`}
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" aria-hidden />
-                          Ambil
+                          <Plus className="w-4 h-4 mr-1" aria-hidden />
+                          Tindakan
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenActionModal(ticket)}
-                        aria-label={`Tambah tindakan untuk tiket ${ticket.ticketNumber}`}
-                      >
-                        <Plus className="w-4 h-4 mr-1" aria-hidden />
-                        Tindakan
-                      </Button>
-                      <Link to={`/technician/ticket/${ticket.id}`}>
-                        <Button variant="ghost" size="sm" aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
-                          <Eye className="w-4 h-4" aria-hidden />
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                        <Link to={`/technician/ticket/${ticket.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}
+                          >
+                            <Eye className="w-4 h-4" aria-hidden />
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -406,9 +520,12 @@ const TechnicianAllTasks = () => {
       </Card>
 
       {/* Pagination */}
-      <nav className="flex justify-center items-center gap-2 flex-wrap" aria-label="Navigasi halaman">
+      <nav
+        className="flex justify-center items-center gap-2 flex-wrap"
+        aria-label="Navigasi halaman"
+      >
         <Button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
           variant="outline"
           aria-label="Halaman sebelumnya"
@@ -419,7 +536,7 @@ const TechnicianAllTasks = () => {
           Halaman {page} dari {totalPages}
         </span>
         <Button
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
           variant="outline"
           aria-label="Halaman berikutnya"

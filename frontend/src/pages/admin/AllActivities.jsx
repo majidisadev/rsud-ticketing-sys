@@ -16,7 +16,7 @@ const getInitialState = () => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { dateFrom: '', dateTo: '', search: '' };
+      const defaults = { dateFrom: '', dateTo: '', search: '', problemTypeId: '' };
       const perPageOpts = [10, 20, 50, 100];
       return {
         filters: { ...defaults, ...data.filters },
@@ -26,7 +26,7 @@ const getInitialState = () => {
     }
   } catch (_) {}
   return {
-    filters: { dateFrom: '', dateTo: '', search: '' },
+    filters: { dateFrom: '', dateTo: '', search: '', problemTypeId: '' },
     page: 1,
     perPage: 20
   };
@@ -47,6 +47,7 @@ const AllActivities = () => {
   const [page, setPage] = useState(initialState.page);
   const [perPage, setPerPage] = useState(initialState.perPage);
   const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+  const [problemTypes, setProblemTypes] = useState([]);
 
   const fetchActivities = useCallback(async () => {
     try {
@@ -67,6 +68,18 @@ const AllActivities = () => {
   useEffect(() => {
     fetchActivities();
   }, [fetchActivities]);
+
+  useEffect(() => {
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+    fetchProblemTypes();
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -212,7 +225,7 @@ const AllActivities = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
               <Input
@@ -224,6 +237,22 @@ const AllActivities = () => {
                 aria-label="Cari judul aktivitas atau deskripsi masalah"
                 autoComplete="off"
               />
+            </div>
+            <div>
+              <label htmlFor="problem-type-activities" className="sr-only">Tipe Masalah</label>
+              <Select
+                id="problem-type-activities"
+                value={filters.problemTypeId || ''}
+                onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
+                aria-label="Filter tipe masalah"
+              >
+                <option value="">Semua Tipe Masalah</option>
+                {problemTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>
+                    {pt.name}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div>
               <label htmlFor="date-from-activities" className="sr-only">Dari Tanggal</label>
@@ -327,25 +356,31 @@ const AllActivities = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead scope="col">Tipe</TableHead>
                 <TableHead scope="col">Teknisi</TableHead>
                 <TableHead scope="col">Waktu Masuk</TableHead>
                 <TableHead scope="col">Waktu Selesai/Batal</TableHead>
                 <TableHead scope="col">Selisih Waktu</TableHead>
+                <TableHead scope="col">Tipe Masalah</TableHead>
                 <TableHead scope="col">Judul Aktivitas / Deskripsi Masalah</TableHead>
-                <TableHead scope="col">Tipe</TableHead>
                 <TableHead scope="col">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="7" className="text-center py-10 text-gray-500">
+                  <TableCell colSpan="8" className="text-center py-10 text-gray-500">
                     Tidak ada data
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedActivities.map((item) => (
                   <TableRow key={item.id} data-activity-row>
+                    <TableCell>
+                      <Badge variant={item.type === 'activity' ? 'outline' : 'secondary'}>
+                        {item.type === 'activity' ? 'Aktivitas' : 'Tugas'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">
                         {(() => {
@@ -369,17 +404,17 @@ const AllActivities = () => {
                       {item.durationMinutes != null ? `${item.durationMinutes} menit` : '-'}
                     </TableCell>
                     <TableCell>
+                      <span className="truncate inline-block max-w-[180px]">
+                        {item.problemTypeName || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <div className="max-w-md">
                         <p className="truncate">{item.title}</p>
                         {item.type === 'ticket' && item.ticketNumber && (
                           <p className="text-xs text-gray-500">{item.ticketNumber}</p>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.type === 'activity' ? 'outline' : 'secondary'}>
-                        {item.type === 'activity' ? 'Aktivitas' : 'Tugas'}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(item.status)} className="flex items-center gap-1 w-fit">

@@ -57,6 +57,20 @@ router.patch('/read-all', authenticate, logActivity, async (req, res) => {
   }
 });
 
+// Delete all notifications
+router.delete('/', authenticate, logActivity, async (req, res) => {
+  try {
+    const deleted = await Notification.destroy({
+      where: { userId: req.user.id }
+    });
+
+    res.json({ message: 'All notifications deleted', deleted });
+  } catch (error) {
+    console.error('Delete all notifications error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get unread count
 router.get('/unread/count', authenticate, logActivity, async (req, res) => {
   try {

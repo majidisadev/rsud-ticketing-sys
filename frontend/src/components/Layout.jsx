@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import NotificationMenu from './NotificationMenu';
-import ChangePasswordDialog from './ChangePasswordDialog';
-import { Menu, X, FileText, Users, BarChart3, LogOut, User, CalendarDays, KeyRound, Tag } from 'lucide-react';
-import { cn } from '../lib/utils';
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import NotificationMenu from "./NotificationMenu";
+import ChangePasswordDialog from "./ChangePasswordDialog";
+import {
+  Menu,
+  X,
+  FileText,
+  Users,
+  BarChart3,
+  LogOut,
+  User,
+  CalendarDays,
+  KeyRound,
+  Tag,
+} from "lucide-react";
+import { cn } from "../lib/utils";
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -15,24 +26,37 @@ const Layout = ({ children }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
-  const isAdmin = user?.role === 'admin';
-  const isTechnician = user?.role === 'teknisi_simrs' || user?.role === 'teknisi_ipsrs';
+  const isAdmin = user?.role === "admin";
+  const isTechnician =
+    user?.role === "teknisi_simrs" || user?.role === "teknisi_ipsrs";
 
   const adminMenu = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { path: '/admin/tickets', label: 'Semua Tiket', icon: FileText },
-    { path: '/admin/all-activities', label: 'Semua Aktivitas', icon: CalendarDays },
-    { path: '/admin/users', label: 'Pengaturan User', icon: Users },
-    { path: '/admin/problem-types', label: 'Pengaturan Tipe Masalah', icon: Tag }
+    { path: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
+    { path: "/admin/tickets", label: "Semua Tiket", icon: FileText },
+    {
+      path: "/admin/all-activities",
+      label: "Semua Aktivitas",
+      icon: CalendarDays,
+    },
+    { path: "/admin/users", label: "Pengaturan User", icon: Users },
+    {
+      path: "/admin/problem-types",
+      label: "Pengaturan Tipe Masalah",
+      icon: Tag,
+    },
   ];
 
   const technicianMenu = [
-    { path: '/technician/my-tasks', label: 'Tugas Saya', icon: FileText },
-    { path: '/technician/all-tasks', label: 'Semua Tugas', icon: FileText },
-    { path: '/technician/my-activities', label: 'Aktivitas Saya', icon: CalendarDays }
+    { path: "/technician/my-tasks", label: "Tugas Saya", icon: FileText },
+    { path: "/technician/all-tasks", label: "Semua Tugas", icon: FileText },
+    {
+      path: "/technician/my-activities",
+      label: "Aktivitas Saya",
+      icon: CalendarDays,
+    },
   ];
 
   const menu = isAdmin ? adminMenu : technicianMenu;
@@ -56,12 +80,14 @@ const Layout = ({ children }) => {
                 )}
               </button>
               <Link to="/" className="flex items-center gap-2 ml-2 lg:ml-0">
-                <img 
-                  src={`${import.meta.env.BASE_URL}logo192.png`} 
-                  alt="RSUD Logo" 
+                <img
+                  src={`${import.meta.env.BASE_URL}logo192.png`}
+                  alt="RSUD Logo"
                   className="h-8 w-8 object-contain"
                 />
-                <h1 className="text-xl font-bold text-gray-800">Ticketing RSUD</h1>
+                <h1 className="text-xl font-bold text-gray-800">
+                  Ticketing RSUD
+                </h1>
               </Link>
             </div>
 
@@ -77,7 +103,7 @@ const Layout = ({ children }) => {
                       "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                       location.pathname === item.path
                         ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -90,15 +116,17 @@ const Layout = ({ children }) => {
             {/* Right Side - Notifications and User Menu */}
             <div className="flex items-center gap-2">
               {isTechnician && <NotificationMenu />}
-              
+
               {/* User Menu */}
               <div className="relative group">
                 <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">
                   <User className="w-5 h-5" />
                   <span className="hidden md:inline">{user?.fullName}</span>
-                  <span className="hidden lg:inline text-xs text-gray-500">({user?.role})</span>
+                  <span className="hidden lg:inline text-xs text-gray-500">
+                    ({user?.role})
+                  </span>
                 </button>
-                
+
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                   <div className="p-2">
@@ -143,7 +171,7 @@ const Layout = ({ children }) => {
                       "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                       location.pathname === item.path
                         ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-100"
+                        : "text-gray-700 hover:bg-gray-100",
                     )}
                   >
                     <Icon className="w-5 h-5" />
@@ -157,7 +185,10 @@ const Layout = ({ children }) => {
                 </div>
                 {isTechnician && (
                   <button
-                    onClick={() => { setMobileMenuOpen(false); setChangePasswordOpen(true); }}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setChangePasswordOpen(true);
+                    }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
                   >
                     <KeyRound className="w-5 h-5" />
@@ -182,7 +213,10 @@ const Layout = ({ children }) => {
         {children}
       </main>
 
-      <ChangePasswordDialog open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </div>
   );
 };

@@ -15,6 +15,14 @@ const TechnicianActivity = sequelize.define('TechnicianActivity', {
       key: 'id'
     }
   },
+  problemTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'problem_types',
+      key: 'id'
+    }
+  },
   title: {
     type: DataTypes.STRING,
     allowNull: false

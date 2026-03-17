@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../../config/api';
-import ActionModal from '../../components/ActionModal';
 import { useAdminPageAnimation, useStaggerListAnimation } from '../../hooks/useAdminPageAnimation';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { Search, Eye, Plus, Download, Clock, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
+import { Search, Eye, Download, Clock, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
 
 const STORAGE_KEY = 'myTasksFilters';
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
@@ -40,8 +39,6 @@ const TechnicianMyTasks = () => {
   const [perPage, setPerPage] = useState(initialState.perPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [showActionModal, setShowActionModal] = useState(false);
   const [filters, setFilters] = useState(initialState.filters);
 
   const containerRef = useRef(null);
@@ -86,11 +83,6 @@ const TechnicianMyTasks = () => {
   const handleFilterChange = (name, value) => {
     setFilters(prev => ({ ...prev, [name]: value }));
     setPage(1);
-  };
-
-  const handleOpenActionModal = (ticket) => {
-    setSelectedTicket(ticket);
-    setShowActionModal(true);
   };
 
   const handleExport = async (type) => {
@@ -307,70 +299,87 @@ const TechnicianMyTasks = () => {
       {/* Table */}
       <Card className="overflow-hidden transition-shadow duration-200 hover:shadow-md">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Nomor Tiket</TableHead>
-                <TableHead scope="col">Waktu Masuk</TableHead>
-                <TableHead scope="col">Waktu Pengambilan</TableHead>
-                <TableHead scope="col">Pelapor</TableHead>
-                <TableHead scope="col">Tipe Masalah</TableHead>
-                <TableHead scope="col">Status</TableHead>
-                <TableHead scope="col">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody ref={tableBodyRef}>
-              {tickets.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[1200px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan="7" className="text-center py-12 text-gray-500">
-                    <p>Tidak ada tugas. Tiket yang Anda ambil akan muncul di sini.</p>
-                  </TableCell>
+                  <TableHead scope="col">Nomor Tiket</TableHead>
+                  <TableHead scope="col">Waktu Masuk</TableHead>
+                  <TableHead scope="col">Waktu Pengambilan</TableHead>
+                  <TableHead scope="col">Response Time</TableHead>
+                  <TableHead scope="col">Waktu Selesai/Batal</TableHead>
+                  <TableHead scope="col">Selisih Waktu</TableHead>
+                  <TableHead scope="col">Pelapor</TableHead>
+                  <TableHead scope="col">Tipe Masalah</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col">Aksi</TableHead>
                 </TableRow>
-              ) : (
-                tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                    <TableCell>
-                      {new Date(ticket.createdAt).toLocaleString('id-ID')}
-                    </TableCell>
-                    <TableCell>
-                      {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {ticket.reporterName} - {ticket.reporterUnit}
-                    </TableCell>
-                    <TableCell className={getProblemTypeColor(ticket.problemType?.slug || ticket.problemType?.name)}>
-                      {ticket.problemType?.name || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(ticket.status)}>
-                        {ticket.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenActionModal(ticket)}
-                          aria-label={`Tambah tindakan untuk tiket ${ticket.ticketNumber}`}
-                        >
-                          <Plus className="w-4 h-4 mr-1" aria-hidden />
-                          Tindakan
-                        </Button>
-                        <Link to={`/technician/ticket/${ticket.id}`}>
-                          <Button variant="ghost" size="sm" aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
-                            <Eye className="w-4 h-4 mr-2" aria-hidden />
-                            Detail
-                          </Button>
-                        </Link>
-                      </div>
+              </TableHeader>
+              <TableBody ref={tableBodyRef}>
+                {tickets.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan="10" className="text-center py-12 text-gray-500">
+                      <p>Tidak ada tugas. Tiket yang Anda ambil akan muncul di sini.</p>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  tickets.map((ticket) => {
+                    const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
+                      ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
+                      : null;
+                    const closedAt = (ticket.status === 'Selesai' || ticket.status === 'Batal') && ticket.lastStatusChangeAt
+                      ? new Date(ticket.lastStatusChangeAt)
+                      : null;
+                    const durationMinutes = closedAt && ticket.createdAt
+                      ? Math.round((closedAt - new Date(ticket.createdAt)) / 60000)
+                      : null;
+
+                    return (
+                      <TableRow key={ticket.id}>
+                        <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
+                        <TableCell>
+                          {new Date(ticket.createdAt).toLocaleString('id-ID')}
+                        </TableCell>
+                        <TableCell>
+                          {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {responseTimeMinutes != null ? `${responseTimeMinutes} menit` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {closedAt ? closedAt.toLocaleString('id-ID') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {durationMinutes != null ? `${durationMinutes} menit` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {ticket.reporterName} - {ticket.reporterUnit}
+                        </TableCell>
+                        <TableCell className={getProblemTypeColor(ticket.problemType?.slug || ticket.problemType?.name)}>
+                          {ticket.problemType?.name || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(ticket.status)}>
+                            {ticket.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link to={`/technician/ticket/${ticket.id}`}>
+                              <Button variant="ghost" size="sm" aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}>
+                                <Eye className="w-4 h-4 mr-2" aria-hidden />
+                                Detail
+                              </Button>
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -396,18 +405,6 @@ const TechnicianMyTasks = () => {
           Berikutnya
         </Button>
       </nav>
-
-      {/* Action Modal */}
-      {showActionModal && selectedTicket && (
-        <ActionModal
-          ticket={selectedTicket}
-          onClose={() => {
-            setShowActionModal(false);
-            setSelectedTicket(null);
-          }}
-          onUpdate={fetchTickets}
-        />
-      )}
     </main>
   );
 };

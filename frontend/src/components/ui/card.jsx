@@ -4,7 +4,10 @@ import { cn } from "../../lib/utils";
 const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-lg border bg-white text-gray-950 shadow-sm", className)}
+    className={cn(
+      "rounded-lg border bg-white text-gray-950 shadow-sm",
+      className,
+    )}
     {...props}
   />
 ));
@@ -22,7 +25,10 @@ CardHeader.displayName = "CardHeader";
 const CardTitle = React.forwardRef(({ className, children, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   >
     {children}
@@ -31,11 +37,7 @@ const CardTitle = React.forwardRef(({ className, children, ...props }, ref) => (
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-sm text-gray-500", className)}
-    {...props}
-  />
+  <p ref={ref} className={cn("text-sm text-gray-500", className)} {...props} />
 ));
 CardDescription.displayName = "CardDescription";
 
@@ -53,5 +55,11 @@ const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
 ));
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
-
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};

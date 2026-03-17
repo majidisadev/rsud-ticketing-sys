@@ -113,13 +113,24 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
+  const deleteAllNotifications = async () => {
+    try {
+      await api.delete('/notifications');
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Delete all notifications error:', error);
+    }
+  };
+
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
         markAsRead,
-        markAllAsRead
+        markAllAsRead,
+        deleteAllNotifications
       }}
     >
       {children}

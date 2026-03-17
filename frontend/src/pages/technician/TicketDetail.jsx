@@ -1,16 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { createTimeline, set } from 'animejs';
-import api, { getBaseUrl } from '../../config/api';
-import { useAuth } from '../../context/AuthContext';
-import { useAdminPageAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Label } from '../../components/ui/label';
-import { Select } from '../../components/ui/select';
-import { StatusFilterSelect } from '../../components/StatusFilterSelect';
-import { ArrowLeft, Upload, Users, UserPlus, CheckCircle, Ticket, FileText, Image } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { createTimeline, set } from "animejs";
+import api, { getBaseUrl } from "../../config/api";
+import { useAuth } from "../../context/AuthContext";
+import ActionModal from "../../components/ActionModal";
+import {
+  useAdminPageAnimation,
+  prefersReducedMotion,
+} from "../../hooks/useAdminPageAnimation";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Label } from "../../components/ui/label";
+import { Select } from "../../components/ui/select";
+import { StatusFilterSelect } from "../../components/StatusFilterSelect";
+import {
+  ArrowLeft,
+  Upload,
+  Users,
+  UserPlus,
+  Plus,
+  CheckCircle,
+  Ticket,
+  FileText,
+  Image,
+} from "lucide-react";
 
 const TicketDetail = () => {
   const { id } = useParams();
@@ -21,7 +40,8 @@ const TicketDetail = () => {
   const [technicians, setTechnicians] = useState([]);
   const [problemTypes, setProblemTypes] = useState([]);
   const [showCoAssignModal, setShowCoAssignModal] = useState(false);
-  const [selectedTechnician, setSelectedTechnician] = useState('');
+  const [selectedTechnician, setSelectedTechnician] = useState("");
+  const [showActionModal, setShowActionModal] = useState(false);
 
   const containerRef = useRef(null);
   const leftColRef = useRef(null);
@@ -32,7 +52,7 @@ const TicketDetail = () => {
   useAdminPageAnimation({
     containerRef,
     cardRefs: [leftColRef, rightColRef, actionsRef],
-    enabled: !loading && !!ticket
+    enabled: !loading && !!ticket,
   });
 
   useEffect(() => {
@@ -40,21 +60,21 @@ const TicketDetail = () => {
     const el = modalRef?.current;
     if (!el) return;
     set(el, { opacity: 0, scale: 0.96 });
-    const tl = createTimeline({ defaults: { ease: 'outExpo', duration: 200 } });
+    const tl = createTimeline({ defaults: { ease: "outExpo", duration: 200 } });
     tl.add(el, { opacity: { to: 1 }, scale: { to: 1 }, duration: 220 });
   }, [showCoAssignModal]);
 
   useEffect(() => {
     fetchTicket();
-    if (user?.role !== 'admin') {
+    if (user?.role !== "admin") {
       fetchTechnicians();
     }
     const fetchProblemTypes = async () => {
       try {
-        const res = await api.get('/problem-types');
+        const res = await api.get("/problem-types");
         setProblemTypes(res.data || []);
       } catch (e) {
-        console.error('Fetch problem types error:', e);
+        console.error("Fetch problem types error:", e);
       }
     };
     fetchProblemTypes();
@@ -66,7 +86,7 @@ const TicketDetail = () => {
       const res = await api.get(`/tickets/${id}`);
       setTicket(res.data);
     } catch (error) {
-      console.error('Fetch ticket error:', error);
+      console.error("Fetch ticket error:", error);
     } finally {
       setLoading(false);
     }
@@ -77,7 +97,7 @@ const TicketDetail = () => {
       const res = await api.get(`/users/technicians/${user.role}`);
       setTechnicians(res.data);
     } catch (error) {
-      console.error('Fetch technicians error:', error);
+      console.error("Fetch technicians error:", error);
     }
   };
 
@@ -86,31 +106,33 @@ const TicketDetail = () => {
       await api.patch(`/tickets/${id}/status`, { status });
       fetchTicket();
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
   const handleProblemTypeChange = async (problemTypeId) => {
     try {
       await api.patch(`/tickets/${id}/problem-type`, {
-        problemTypeId: problemTypeId ? parseInt(problemTypeId, 10) : null
+        problemTypeId: problemTypeId ? parseInt(problemTypeId, 10) : null,
       });
       fetchTicket();
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
   const handleCoAssign = async () => {
     if (!selectedTechnician) return;
     try {
-      await api.post(`/tickets/${id}/co-assign`, { technicianId: parseInt(selectedTechnician) });
+      await api.post(`/tickets/${id}/co-assign`, {
+        technicianId: parseInt(selectedTechnician),
+      });
       setShowCoAssignModal(false);
-      setSelectedTechnician('');
+      setSelectedTechnician("");
       fetchTicket();
-      alert('Co-assignment berhasil');
+      alert("Co-assignment berhasil");
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
@@ -118,21 +140,21 @@ const TicketDetail = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 25 * 1024 * 1024) {
-      alert('Ukuran file maksimal 25MB');
+      alert("Ukuran file maksimal 25MB");
       return;
     }
 
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append("photo", file);
 
     try {
       await api.post(`/tickets/${id}/proof`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { "Content-Type": "multipart/form-data" },
       });
       fetchTicket();
-      alert('Bukti perbaikan berhasil diupload');
+      alert("Bukti perbaikan berhasil diupload");
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
@@ -140,54 +162,58 @@ const TicketDetail = () => {
     try {
       await api.post(`/tickets/${id}/take`);
       fetchTicket();
-      alert('Tiket berhasil diambil');
+      alert("Tiket berhasil diambil");
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      alert(error.response?.data?.message || "Terjadi kesalahan");
     }
   };
 
   // Can view: all tickets that match user's role (handled by backend)
-  const canView = ticket && user?.role !== 'admin';
-  
+  const canView = ticket && user?.role !== "admin";
+
   // Can edit: only if user is assigned or co-assigned
-  const canEdit = ticket && user && (
-    ticket.assignedTo === user.id ||
-    ticket.coAssignments?.some(ca => ca.technicianId === user.id)
-  );
-  
+  const canEdit =
+    ticket &&
+    user &&
+    (ticket.assignedTo === user.id ||
+      ticket.coAssignments?.some((ca) => ca.technicianId === user.id));
+
   // Can take: only for "Baru" status tickets that match user's role and not yet taken
-  const canTake = ticket && 
-    ticket.status === 'Baru' && 
-    user?.role !== 'admin' &&
+  const canTake =
+    ticket &&
+    ticket.status === "Baru" &&
+    user?.role !== "admin" &&
     ticket.assignedTo === null &&
-    ((user?.role === 'teknisi_simrs' && ticket.category === 'SIMRS') ||
-     (user?.role === 'teknisi_ipsrs' && ticket.category === 'IPSRS'));
-  
+    ((user?.role === "teknisi_simrs" && ticket.category === "SIMRS") ||
+      (user?.role === "teknisi_ipsrs" && ticket.category === "IPSRS"));
+
   // Check if ticket is taken by another technician (view only)
-  const isTakenByOther = ticket && user && 
-    ticket.assignedTo !== null && 
+  const isTakenByOther =
+    ticket &&
+    user &&
+    ticket.assignedTo !== null &&
     ticket.assignedTo !== user.id &&
-    !ticket.coAssignments?.some(ca => ca.technicianId === user.id) &&
-    ((user?.role === 'teknisi_simrs' && ticket.category === 'SIMRS') ||
-     (user?.role === 'teknisi_ipsrs' && ticket.category === 'IPSRS'));
+    !ticket.coAssignments?.some((ca) => ca.technicianId === user.id) &&
+    ((user?.role === "teknisi_simrs" && ticket.category === "SIMRS") ||
+      (user?.role === "teknisi_ipsrs" && ticket.category === "IPSRS"));
 
   const getStatusVariant = (status) => {
     const variants = {
-      Baru: 'default',
-      Diproses: 'warning',
-      Selesai: 'success',
-      Batal: 'destructive'
+      Baru: "default",
+      Diproses: "warning",
+      Selesai: "success",
+      Batal: "destructive",
     };
-    return variants[status] || 'secondary';
+    return variants[status] || "secondary";
   };
 
   const getPriorityVariant = (priority) => {
     const variants = {
-      tinggi: 'destructive',
-      sedang: 'warning',
-      rendah: 'success'
+      tinggi: "destructive",
+      sedang: "warning",
+      rendah: "success",
     };
-    return variants[priority] || 'secondary';
+    return variants[priority] || "secondary";
   };
 
   if (loading) {
@@ -224,7 +250,11 @@ const TicketDetail = () => {
   }
 
   return (
-    <main ref={containerRef} className="space-y-4 sm:space-y-6" aria-labelledby="ticket-detail-title">
+    <main
+      ref={containerRef}
+      className="space-y-4 sm:space-y-6"
+      aria-labelledby="ticket-detail-title"
+    >
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -236,12 +266,17 @@ const TicketDetail = () => {
             >
               <ArrowLeft className="w-5 h-5" aria-hidden />
             </Button>
-            <h1 id="ticket-detail-title" className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h1
+              id="ticket-detail-title"
+              className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2"
+            >
               <Ticket className="w-6 h-6 text-blue-600" aria-hidden />
               Detail Tiket
             </h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600 ml-11 font-mono">{ticket.ticketNumber}</p>
+          <p className="text-sm sm:text-base text-gray-600 ml-11 font-mono">
+            {ticket.ticketNumber}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {canTake && (
@@ -254,11 +289,17 @@ const TicketDetail = () => {
               Ambil Tiket
             </Button>
           )}
-          {!canEdit && canView && (ticket.status === 'Baru' || isTakenByOther) && (
-            <Badge variant="outline" className="text-sm" aria-label="Hanya tampilan">
-              View Only
-            </Badge>
-          )}
+          {!canEdit &&
+            canView &&
+            (ticket.status === "Baru" || isTakenByOther) && (
+              <Badge
+                variant="outline"
+                className="text-sm"
+                aria-label="Hanya tampilan"
+              >
+                View Only
+              </Badge>
+            )}
         </div>
       </header>
 
@@ -276,7 +317,7 @@ const TicketDetail = () => {
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex-1 min-w-[120px]">
                   <Label className="text-sm text-gray-600">Status</Label>
-                  {canEdit && user?.role !== 'admin' ? (
+                  {canEdit && user?.role !== "admin" ? (
                     <StatusFilterSelect
                       variant="ticket"
                       includeBaru={false}
@@ -286,26 +327,37 @@ const TicketDetail = () => {
                       aria-label="Ubah status tiket"
                     />
                   ) : (
-                    <Badge variant={getStatusVariant(ticket.status)} className="mt-1">
+                    <Badge
+                      variant={getStatusVariant(ticket.status)}
+                      className="mt-1"
+                    >
                       {ticket.status}
                     </Badge>
                   )}
                 </div>
                 <div className="flex-1 min-w-[120px]">
                   <Label className="text-sm text-gray-600">Tipe Masalah</Label>
-                  {canEdit && user?.role !== 'admin' ? (
+                  {canEdit && user?.role !== "admin" ? (
                     <Select
-                      value={ticket.problemTypeId ?? (problemTypes[0]?.id ?? '')}
-                      onChange={(e) => handleProblemTypeChange(e.target.value || null)}
+                      value={ticket.problemTypeId ?? problemTypes[0]?.id ?? ""}
+                      onChange={(e) =>
+                        handleProblemTypeChange(e.target.value || null)
+                      }
                     >
                       {problemTypes.map((pt) => (
-                        <option key={pt.id} value={pt.id}>{pt.name}</option>
+                        <option key={pt.id} value={pt.id}>
+                          {pt.name}
+                        </option>
                       ))}
                     </Select>
                   ) : (
                     <div className="mt-1">
                       {ticket.problemType?.name ? (
-                        <Badge variant={getPriorityVariant(ticket.problemType.slug || ticket.problemType.name)}>
+                        <Badge
+                          variant={getPriorityVariant(
+                            ticket.problemType.slug || ticket.problemType.name,
+                          )}
+                        >
                           {ticket.problemType.name}
                         </Badge>
                       ) : (
@@ -317,15 +369,35 @@ const TicketDetail = () => {
               </div>
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex-1 min-w-[140px]">
-                  <Label className="text-sm text-gray-600">Waktu Pengambilan</Label>
+                  <Label className="text-sm text-gray-600">
+                    Waktu Pengambilan
+                  </Label>
                   <p className="font-medium text-gray-900">
-                    {ticket.pickedUpAt ? new Date(ticket.pickedUpAt).toLocaleString('id-ID') : '-'}
+                    {ticket.pickedUpAt
+                      ? new Date(ticket.pickedUpAt).toLocaleString("id-ID")
+                      : "-"}
                   </p>
                 </div>
                 <div className="flex-1 min-w-[140px]">
-                  <Label className="text-sm text-gray-600">Waktu Terakhir Update</Label>
+                  <Label className="text-sm text-gray-600">
+                    Waktu Terakhir Update
+                  </Label>
                   <p className="font-medium text-gray-900">
-                    {ticket.lastStatusChangeAt ? new Date(ticket.lastStatusChangeAt).toLocaleString('id-ID') : '-'}
+                    {ticket.lastStatusChangeAt
+                      ? new Date(ticket.lastStatusChangeAt).toLocaleString(
+                          "id-ID",
+                        )
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[220px]">
+                  <Label className="text-sm text-gray-600">
+                    Teknisi yang Mengambil
+                  </Label>
+                  <p className="font-medium text-gray-900">
+                    {ticket.assignedTechnician?.fullName || "-"}
                   </p>
                 </div>
               </div>
@@ -343,21 +415,29 @@ const TicketDetail = () => {
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex-1 min-w-[140px]">
                   <Label className="text-sm text-gray-600">Nama</Label>
-                  <p className="font-medium text-gray-900">{ticket.reporterName}</p>
+                  <p className="font-medium text-gray-900">
+                    {ticket.reporterName}
+                  </p>
                 </div>
                 <div className="flex-1 min-w-[140px]">
                   <Label className="text-sm text-gray-600">Unit/Ruangan</Label>
-                  <p className="font-medium text-gray-900">{ticket.reporterUnit}</p>
+                  <p className="font-medium text-gray-900">
+                    {ticket.reporterUnit}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex-1 min-w-[140px]">
                   <Label className="text-sm text-gray-600">Nomor Telepon</Label>
-                  <p className="font-medium text-gray-900">{ticket.reporterPhone}</p>
+                  <p className="font-medium text-gray-900">
+                    {ticket.reporterPhone}
+                  </p>
                 </div>
                 <div className="flex-1 min-w-[140px]">
                   <Label className="text-sm text-gray-600">Waktu Masuk</Label>
-                  <p className="font-medium text-gray-900">{new Date(ticket.createdAt).toLocaleString('id-ID')}</p>
+                  <p className="font-medium text-gray-900">
+                    {new Date(ticket.createdAt).toLocaleString("id-ID")}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -371,7 +451,9 @@ const TicketDetail = () => {
               <CardTitle className="text-lg">Deskripsi Masalah</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
+              <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                {ticket.description}
+              </p>
             </CardContent>
           </Card>
 
@@ -389,8 +471,8 @@ const TicketDetail = () => {
                   alt="Foto lampiran masalah dari pelapor"
                   className="w-full h-auto rounded-lg border border-gray-200"
                   onError={(e) => {
-                    e.target.src = '/placeholder-image.png';
-                    console.error('Image load error:', ticket.photoUrl);
+                    e.target.src = "/placeholder-image.png";
+                    console.error("Image load error:", ticket.photoUrl);
                   }}
                 />
               </CardContent>
@@ -408,14 +490,14 @@ const TicketDetail = () => {
                   alt="Foto bukti perbaikan yang diupload"
                   className="w-full h-auto rounded-lg border border-gray-200 mb-2"
                   onError={(e) => {
-                    e.target.src = '/placeholder-image.png';
-                    console.error('Image load error:', ticket.proofPhotoUrl);
+                    e.target.src = "/placeholder-image.png";
+                    console.error("Image load error:", ticket.proofPhotoUrl);
                   }}
                 />
               ) : (
                 <p className="text-gray-500 mb-2">Belum ada bukti perbaikan</p>
               )}
-              {canEdit && user?.role !== 'admin' && (
+              {canEdit && user?.role !== "admin" && (
                 <div>
                   <input
                     id="proof-upload"
@@ -427,7 +509,9 @@ const TicketDetail = () => {
                   <Button
                     variant="outline"
                     type="button"
-                    onClick={() => document.getElementById('proof-upload')?.click()}
+                    onClick={() =>
+                      document.getElementById("proof-upload")?.click()
+                    }
                     aria-label="Pilih file untuk upload bukti perbaikan"
                   >
                     <Upload className="w-4 h-4 mr-2" aria-hidden />
@@ -448,7 +532,9 @@ const TicketDetail = () => {
                   {ticket.coAssignments.map((ca) => (
                     <li key={ca.id} className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{ca.technician?.fullName}</span>
+                      <span className="text-gray-900">
+                        {ca.technician?.fullName}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -459,31 +545,59 @@ const TicketDetail = () => {
       </div>
 
       {/* Tindakan Section */}
-      <section ref={actionsRef} className="space-y-4 sm:space-y-6" aria-labelledby="tindakan-heading">
+      <section
+        ref={actionsRef}
+        className="space-y-4 sm:space-y-6"
+        aria-labelledby="tindakan-heading"
+      >
         <div className="flex justify-between items-center flex-wrap gap-2">
-          <CardTitle id="tindakan-heading" className="text-lg">Tindakan</CardTitle>
-          {canEdit && ticket.assignedTo === user.id && technicians.length > 0 && (
-            <Button
-              onClick={() => setShowCoAssignModal(true)}
-              variant="default"
-              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
-              aria-label="Minta bantuan teknisi lain (co-assign)"
-            >
-              <UserPlus className="w-4 h-4 mr-2" aria-hidden />
-              Minta Bantuan
-            </Button>
-          )}
+          <CardTitle id="tindakan-heading" className="text-lg">
+            Tindakan
+          </CardTitle>
+          <div className="flex items-center gap-2 flex-wrap">
+            {canEdit && user?.role !== "admin" && (
+              <Button
+                onClick={() => setShowActionModal(true)}
+                variant="default"
+                aria-label="Tambah tindakan untuk tiket ini"
+              >
+                <Plus className="w-4 h-4 mr-2" aria-hidden />
+                Tambah Tindakan
+              </Button>
+            )}
+            {canEdit &&
+              ticket.assignedTo === user.id &&
+              technicians.length > 0 && (
+                <Button
+                  onClick={() => setShowCoAssignModal(true)}
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-500"
+                  aria-label="Minta bantuan teknisi lain (co-assign)"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" aria-hidden />
+                  Minta Bantuan
+                </Button>
+              )}
+          </div>
         </div>
         <Card className="transition-shadow duration-200 hover:shadow-md">
           <CardContent className="pt-6">
             <div className="space-y-4">
               {ticket.actions && ticket.actions.length > 0 ? (
                 ticket.actions.map((action) => (
-                  <div key={action.id} className="border-l-4 border-blue-500 pl-4">
-                    <p className="font-medium capitalize">{action.actionType.replace('-', ' ')}</p>
-                    <p className="text-sm text-gray-600">{action.description}</p>
+                  <div
+                    key={action.id}
+                    className="border-l-4 border-blue-500 pl-4"
+                  >
+                    <p className="font-medium capitalize">
+                      {action.actionType.replace("-", " ")}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {action.description}
+                    </p>
                     <p className="text-xs text-gray-500">
-                      oleh {action.creator?.fullName} - {new Date(action.createdAt).toLocaleString('id-ID')}
+                      oleh {action.creator?.fullName} -{" "}
+                      {new Date(action.createdAt).toLocaleString("id-ID")}
                     </p>
                   </div>
                 ))
@@ -495,6 +609,15 @@ const TicketDetail = () => {
         </Card>
       </section>
 
+      {/* Action Modal */}
+      {showActionModal && ticket && (
+        <ActionModal
+          ticket={ticket}
+          onClose={() => setShowActionModal(false)}
+          onUpdate={fetchTicket}
+        />
+      )}
+
       {/* Co-Assign Modal */}
       {showCoAssignModal && (
         <div
@@ -504,7 +627,10 @@ const TicketDetail = () => {
           aria-labelledby="co-assign-title"
           aria-describedby="co-assign-desc"
         >
-          <Card ref={modalRef} className="max-w-md w-full shadow-xl transition-all duration-200 ease-out">
+          <Card
+            ref={modalRef}
+            className="max-w-md w-full shadow-xl transition-all duration-200 ease-out"
+          >
             <CardHeader>
               <CardTitle id="co-assign-title">Minta Bantuan</CardTitle>
             </CardHeader>
@@ -523,7 +649,7 @@ const TicketDetail = () => {
                   >
                     <option value="">Pilih Teknisi</option>
                     {technicians
-                      .filter(t => t.id !== user.id)
+                      .filter((t) => t.id !== user.id)
                       .map((tech) => (
                         <option key={tech.id} value={tech.id}>
                           {tech.fullName}
@@ -543,7 +669,7 @@ const TicketDetail = () => {
                   <Button
                     onClick={() => {
                       setShowCoAssignModal(false);
-                      setSelectedTechnician('');
+                      setSelectedTechnician("");
                     }}
                     variant="outline"
                     className="flex-1"

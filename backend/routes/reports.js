@@ -3,7 +3,10 @@ const { Op } = require("sequelize");
 const { Ticket, User, CoAssignment, ProblemType } = require("../models");
 const { authenticate, authorize } = require("../middleware/auth");
 const logActivity = require("../middleware/activityLogger");
-const { drawLetterhead, addVerificationSection } = require("../utils/pdfHelpers");
+const {
+  drawLetterhead,
+  addVerificationSection,
+} = require("../utils/pdfHelpers");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
 const moment = require("moment");
@@ -64,7 +67,7 @@ router.get(
       console.error("Get report data error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Export to Excel
@@ -96,11 +99,17 @@ router.get(
       const tickets = await Ticket.findAll({
         where,
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
           {
             model: CoAssignment,
             as: "coAssignments",
-            include: [{ model: User, as: "technician", attributes: ["id", "fullName"] }],
+            include: [
+              { model: User, as: "technician", attributes: ["id", "fullName"] },
+            ],
           },
           { model: ProblemType, as: "problemType", attributes: ["id", "name"] },
         ],
@@ -113,7 +122,11 @@ router.get(
         { header: "Nomor Tiket", key: "ticketNumber", width: 20 },
         { header: "Waktu Masuk", key: "createdAt", width: 20 },
         { header: "Waktu Ambil", key: "pickedUpAt", width: 20 },
-        { header: "Response Time (menit)", key: "responseTimeMinutes", width: 18 },
+        {
+          header: "Response Time (menit)",
+          key: "responseTimeMinutes",
+          width: 18,
+        },
         { header: "Waktu Selesai/Batal", key: "closedAt", width: 20 },
         { header: "Selisih Waktu (menit)", key: "durationMinutes", width: 18 },
         { header: "Pelapor", key: "pelapor", width: 35 },
@@ -126,28 +139,51 @@ router.get(
 
       tickets.forEach((ticket) => {
         const technicians = [];
-        if (ticket.assignedTechnician?.fullName) technicians.push(ticket.assignedTechnician.fullName);
+        if (ticket.assignedTechnician?.fullName)
+          technicians.push(ticket.assignedTechnician.fullName);
         if (ticket.coAssignments?.length) {
           ticket.coAssignments.forEach((ca) => {
-            if (ca.technician?.fullName) technicians.push(ca.technician.fullName);
+            if (ca.technician?.fullName)
+              technicians.push(ca.technician.fullName);
           });
         }
-        const technicianText = technicians.length ? technicians.join(", ") : "-";
-        const responseTimeMinutes = ticket.pickedUpAt && ticket.createdAt
-          ? Math.round((new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) / 60000)
-          : null;
-        const closedAtText = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt
-          ? moment(ticket.lastStatusChangeAt).format("YYYY-MM-DD HH:mm:ss")
+        const technicianText = technicians.length
+          ? technicians.join(", ")
           : "-";
-        const durationMinutes = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt && ticket.createdAt
-          ? Math.round((new Date(ticket.lastStatusChangeAt) - new Date(ticket.createdAt)) / 60000)
-          : null;
-        const pelaporText = [ticket.reporterName, ticket.reporterUnit].filter(Boolean).join(" - ") || "-";
+        const responseTimeMinutes =
+          ticket.pickedUpAt && ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
+        const closedAtText =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt
+            ? moment(ticket.lastStatusChangeAt).format("YYYY-MM-DD HH:mm:ss")
+            : "-";
+        const durationMinutes =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt &&
+          ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.lastStatusChangeAt) -
+                  new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
+        const pelaporText =
+          [ticket.reporterName, ticket.reporterUnit]
+            .filter(Boolean)
+            .join(" - ") || "-";
         worksheet.addRow({
           ticketNumber: ticket.ticketNumber,
           createdAt: moment(ticket.createdAt).format("YYYY-MM-DD HH:mm:ss"),
-          pickedUpAt: ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("YYYY-MM-DD HH:mm:ss") : "-",
-          responseTimeMinutes: responseTimeMinutes != null ? responseTimeMinutes : "-",
+          pickedUpAt: ticket.pickedUpAt
+            ? moment(ticket.pickedUpAt).format("YYYY-MM-DD HH:mm:ss")
+            : "-",
+          responseTimeMinutes:
+            responseTimeMinutes != null ? responseTimeMinutes : "-",
           closedAt: closedAtText,
           durationMinutes: durationMinutes != null ? durationMinutes : "-",
           pelapor: pelaporText,
@@ -160,11 +196,11 @@ router.get(
 
       res.setHeader(
         "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=laporan-tiket.xlsx"
+        "attachment; filename=laporan-tiket.xlsx",
       );
 
       await workbook.xlsx.write(res);
@@ -173,7 +209,7 @@ router.get(
       console.error("Export Excel error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Export to PDF
@@ -205,11 +241,17 @@ router.get(
       const tickets = await Ticket.findAll({
         where,
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
           {
             model: CoAssignment,
             as: "coAssignments",
-            include: [{ model: User, as: "technician", attributes: ["id", "fullName"] }],
+            include: [
+              { model: User, as: "technician", attributes: ["id", "fullName"] },
+            ],
           },
           { model: ProblemType, as: "problemType", attributes: ["id", "name"] },
         ],
@@ -220,12 +262,16 @@ router.get(
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=laporan-tiket.pdf"
+        "attachment; filename=laporan-tiket.pdf",
       );
       doc.pipe(res);
       const contentStartY = drawLetterhead(doc);
       doc.y = contentStartY;
-      doc.fontSize(20).fillColor("#000000").font("Helvetica-Bold").text("Laporan Tiket", { align: "center" });
+      doc
+        .fontSize(20)
+        .fillColor("#000000")
+        .font("Helvetica-Bold")
+        .text("Laporan Tiket", { align: "center" });
       doc.moveDown();
 
       const tableTop = doc.y;
@@ -249,7 +295,7 @@ router.get(
           header,
           50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
           y,
-          { width: colWidths[i], ellipsis: true }
+          { width: colWidths[i], ellipsis: true },
         );
       });
 
@@ -263,38 +309,49 @@ router.get(
           // Draw letterhead on new page
           const newPageY = drawLetterhead(doc);
           y = newPageY + 10;
-          
+
           // Redraw header on new page
-          doc.fontSize(9).font("Helvetica-Bold").fillColor('#000000');
+          doc.fontSize(9).font("Helvetica-Bold").fillColor("#000000");
           headers.forEach((header, i) => {
             doc.text(
               header,
               50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
               y,
-              { width: colWidths[i], ellipsis: true }
+              { width: colWidths[i], ellipsis: true },
             );
           });
           y += rowHeight;
-          doc.font("Helvetica").fontSize(8).fillColor('#000000');
+          doc.font("Helvetica").fontSize(8).fillColor("#000000");
         }
 
         const technicians = [];
-        if (ticket.assignedTechnician?.fullName) technicians.push(ticket.assignedTechnician.fullName);
+        if (ticket.assignedTechnician?.fullName)
+          technicians.push(ticket.assignedTechnician.fullName);
         if (ticket.coAssignments?.length) {
           ticket.coAssignments.forEach((ca) => {
-            if (ca.technician?.fullName) technicians.push(ca.technician.fullName);
+            if (ca.technician?.fullName)
+              technicians.push(ca.technician.fullName);
           });
         }
-        const technicianText = technicians.length ? technicians.join(", ") : "-";
-        const closedAtText = (ticket.status === "Selesai" || ticket.status === "Batal") && ticket.lastStatusChangeAt
-          ? moment(ticket.lastStatusChangeAt).format("DD/MM/YYYY HH:mm")
+        const technicianText = technicians.length
+          ? technicians.join(", ")
           : "-";
-        const pelaporText = [ticket.reporterName, ticket.reporterUnit].filter(Boolean).join(" - ") || "-";
+        const closedAtText =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt
+            ? moment(ticket.lastStatusChangeAt).format("DD/MM/YYYY HH:mm")
+            : "-";
+        const pelaporText =
+          [ticket.reporterName, ticket.reporterUnit]
+            .filter(Boolean)
+            .join(" - ") || "-";
 
         const row = [
           ticket.ticketNumber,
           moment(ticket.createdAt).format("DD/MM/YYYY HH:mm"),
-          ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("DD/MM/YYYY HH:mm") : "-",
+          ticket.pickedUpAt
+            ? moment(ticket.pickedUpAt).format("DD/MM/YYYY HH:mm")
+            : "-",
           closedAtText,
           pelaporText,
           technicianText,
@@ -307,7 +364,7 @@ router.get(
             cellText,
             50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
             y,
-            { width: colWidths[i], ellipsis: true }
+            { width: colWidths[i], ellipsis: true },
           );
         });
         y += rowHeight;
@@ -319,7 +376,7 @@ router.get(
       console.error("Export PDF error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Export to Excel for Technician (My Tasks or All Tasks when scope=all)
@@ -371,56 +428,103 @@ router.get(
       const tickets = await Ticket.findAll({
         where,
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
           {
             model: CoAssignment,
             as: "coAssignments",
-            include: [{ model: User, as: "technician", attributes: ["id", "fullName"] }],
+            include: [
+              { model: User, as: "technician", attributes: ["id", "fullName"] },
+            ],
           },
         ],
         order: [["createdAt", "DESC"]],
       });
 
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet(isAllTasks ? "Semua Tugas" : "Tugas Saya");
+      const worksheet = workbook.addWorksheet(
+        isAllTasks ? "Semua Tugas" : "Tugas Saya",
+      );
       worksheet.columns = [
         { header: "Nomor Tiket", key: "ticketNumber", width: 20 },
         { header: "Waktu Masuk", key: "createdAt", width: 20 },
         { header: "Waktu Ambil", key: "pickedUpAt", width: 20 },
-        { header: "Asal Unit", key: "reporterUnit", width: 20 },
-        { header: "Teknisi", key: "technician", width: 20 },
+        {
+          header: "Response Time (menit)",
+          key: "responseTimeMinutes",
+          width: 18,
+        },
+        { header: "Waktu Selesai/Batal", key: "closedAt", width: 20 },
+        { header: "Selisih Waktu (menit)", key: "durationMinutes", width: 18 },
+        { header: "Pelapor", key: "pelapor", width: 35 },
         { header: "Deskripsi Masalah", key: "description", width: 50 },
+        { header: "Status", key: "status", width: 15 },
       ];
       worksheet.getRow(1).font = { bold: true };
 
       tickets.forEach((ticket) => {
-        const technicians = [];
-        if (ticket.assignedTechnician?.fullName) technicians.push(ticket.assignedTechnician.fullName);
-        if (ticket.coAssignments?.length) {
-          ticket.coAssignments.forEach((ca) => {
-            if (ca.technician?.fullName) technicians.push(ca.technician.fullName);
-          });
-        }
-        const technicianText = technicians.length ? technicians.join(", ") : "-";
+        const pelaporText =
+          [ticket.reporterName, ticket.reporterUnit]
+            .filter(Boolean)
+            .join(" - ") || "-";
+        const responseTimeMinutes =
+          ticket.pickedUpAt && ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
+        const closedAtText =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt
+            ? moment(ticket.lastStatusChangeAt).format("YYYY-MM-DD HH:mm:ss")
+            : "-";
+        const durationMinutes =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt &&
+          ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.lastStatusChangeAt) -
+                  new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
         worksheet.addRow({
           ticketNumber: ticket.ticketNumber,
           createdAt: moment(ticket.createdAt).format("YYYY-MM-DD HH:mm:ss"),
-          pickedUpAt: ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("YYYY-MM-DD HH:mm:ss") : "-",
-          reporterUnit: ticket.reporterUnit || "-",
-          technician: technicianText,
+          pickedUpAt: ticket.pickedUpAt
+            ? moment(ticket.pickedUpAt).format("YYYY-MM-DD HH:mm:ss")
+            : "-",
+          responseTimeMinutes:
+            responseTimeMinutes != null ? `${responseTimeMinutes} menit` : "-",
+          closedAt: closedAtText,
+          durationMinutes:
+            durationMinutes != null ? `${durationMinutes} menit` : "-",
+          pelapor: pelaporText,
           description: ticket.description || "-",
+          status: ticket.status || "-",
         });
       });
 
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=" + (isAllTasks ? "semua-tugas.xlsx" : "tugas-saya.xlsx"));
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=" +
+          (isAllTasks ? "semua-tugas.xlsx" : "tugas-saya.xlsx"),
+      );
       await workbook.xlsx.write(res);
       res.end();
     } catch (error) {
       console.error("Export Excel error (Technician):", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Export to PDF for Technician (My Tasks or All Tasks when scope=all)
@@ -467,11 +571,17 @@ router.get(
       const tickets = await Ticket.findAll({
         where,
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
           {
             model: CoAssignment,
             as: "coAssignments",
-            include: [{ model: User, as: "technician", attributes: ["id", "fullName"] }],
+            include: [
+              { model: User, as: "technician", attributes: ["id", "fullName"] },
+            ],
           },
         ],
         order: [["createdAt", "DESC"]],
@@ -481,21 +591,34 @@ router.get(
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=" + (isAllTasks ? "semua-tugas.pdf" : "tugas-saya.pdf")
+        "attachment; filename=" +
+          (isAllTasks ? "semua-tugas.pdf" : "tugas-saya.pdf"),
       );
       doc.pipe(res);
       const contentStartY = drawLetterhead(doc);
       doc.y = contentStartY;
-      doc.fontSize(20).fillColor("#000000").font("Helvetica-Bold").text(
-        isAllTasks ? "Laporan Semua Tugas" : "Laporan Tugas Saya",
-        { align: "center" }
-      );
+      doc
+        .fontSize(20)
+        .fillColor("#000000")
+        .font("Helvetica-Bold")
+        .text(isAllTasks ? "Laporan Semua Tugas" : "Laporan Tugas Saya", {
+          align: "center",
+        });
       doc.moveDown();
 
       const tableTop = doc.y;
       const rowHeight = 20;
-      const colWidths = [80, 75, 75, 70, 70, 120];
-      const headers = ["Nomor Tiket", "Waktu Masuk", "Waktu Ambil", "Asal Unit", "Teknisi", "Deskripsi Masalah"];
+      const colWidths = [52, 58, 58, 48, 68, 48, 72, 94];
+      const headers = [
+        "Nomor",
+        "Masuk",
+        "Ambil",
+        "Respons",
+        "Selesai/Batal",
+        "Durasi",
+        "Pelapor",
+        "Deskripsi",
+      ];
       let y = tableTop;
       doc.fontSize(9).font("Helvetica-Bold");
       headers.forEach((header, i) => {
@@ -503,7 +626,7 @@ router.get(
           header,
           50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
           y,
-          { width: colWidths[i], ellipsis: true }
+          { width: colWidths[i], ellipsis: true },
         );
       });
       y += rowHeight;
@@ -520,26 +643,48 @@ router.get(
               header,
               50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
               y,
-              { width: colWidths[i], ellipsis: true }
+              { width: colWidths[i], ellipsis: true },
             );
           });
           y += rowHeight;
           doc.font("Helvetica").fontSize(8).fillColor("#000000");
         }
-        const technicians = [];
-        if (ticket.assignedTechnician?.fullName) technicians.push(ticket.assignedTechnician.fullName);
-        if (ticket.coAssignments?.length) {
-          ticket.coAssignments.forEach((ca) => {
-            if (ca.technician?.fullName) technicians.push(ca.technician.fullName);
-          });
-        }
-        const technicianText = technicians.length ? technicians.join(", ") : "-";
+        const pelaporText =
+          [ticket.reporterName, ticket.reporterUnit]
+            .filter(Boolean)
+            .join(" - ") || "-";
+        const responseTimeMinutes =
+          ticket.pickedUpAt && ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.pickedUpAt) - new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
+        const closedAtText =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt
+            ? moment(ticket.lastStatusChangeAt).format("DD/MM/YYYY HH:mm")
+            : "-";
+        const durationMinutes =
+          (ticket.status === "Selesai" || ticket.status === "Batal") &&
+          ticket.lastStatusChangeAt &&
+          ticket.createdAt
+            ? Math.round(
+                (new Date(ticket.lastStatusChangeAt) -
+                  new Date(ticket.createdAt)) /
+                  60000,
+              )
+            : null;
         const row = [
           ticket.ticketNumber,
           moment(ticket.createdAt).format("DD/MM/YYYY HH:mm"),
-          ticket.pickedUpAt ? moment(ticket.pickedUpAt).format("DD/MM/YYYY HH:mm") : "-",
-          ticket.reporterUnit || "-",
-          technicianText,
+          ticket.pickedUpAt
+            ? moment(ticket.pickedUpAt).format("DD/MM/YYYY HH:mm")
+            : "-",
+          responseTimeMinutes != null ? `${responseTimeMinutes} menit` : "-",
+          closedAtText,
+          durationMinutes != null ? `${durationMinutes} menit` : "-",
+          pelaporText,
           ticket.description || "-",
         ];
         row.forEach((cell, i) => {
@@ -548,7 +693,7 @@ router.get(
             cellText,
             50 + colWidths.slice(0, i).reduce((a, b) => a + b, 0),
             y,
-            { width: colWidths[i], ellipsis: true }
+            { width: colWidths[i], ellipsis: true },
           );
         });
         y += rowHeight;
@@ -560,7 +705,7 @@ router.get(
       console.error("Export PDF error (Technician):", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 module.exports = router;

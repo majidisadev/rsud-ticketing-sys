@@ -19,7 +19,7 @@ const getReportInitialState = () => {
     const raw = sessionStorage.getItem(STORAGE_KEY_REPORT);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { status: '', dateFrom: '', dateTo: '', search: '' };
+      const defaults = { status: '', dateFrom: '', dateTo: '', search: '', problemTypeId: '' };
       return {
         activeTab: data.activeTab === 'laporan' ? 'laporan' : 'aktivitas',
         reportFilters: { ...defaults, ...data.reportFilters },
@@ -30,7 +30,7 @@ const getReportInitialState = () => {
   } catch (_) {}
   return {
     activeTab: 'aktivitas',
-    reportFilters: { status: '', dateFrom: '', dateTo: '', search: '' },
+    reportFilters: { status: '', dateFrom: '', dateTo: '', search: '', problemTypeId: '' },
     reportPage: 1,
     reportPerPage: 20
   };
@@ -50,6 +50,8 @@ const MyActivities = () => {
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
   const [editingActivity, setEditingActivity] = useState(null);
   const [activityTitle, setActivityTitle] = useState('');
+  const [problemTypes, setProblemTypes] = useState([]);
+  const [activityProblemTypeId, setActivityProblemTypeId] = useState('');
   const [activityDate, setActivityDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -84,6 +86,17 @@ const MyActivities = () => {
   const formatTime = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -150,6 +163,18 @@ const MyActivities = () => {
       fetchReportData();
     }
   }, [activeTab, fetchActivities, fetchCalendarDates, fetchReportData]);
+
+  useEffect(() => {
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+    fetchProblemTypes();
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY_REPORT, JSON.stringify({
@@ -223,10 +248,12 @@ const MyActivities = () => {
     try {
       await api.post('/activities', {
         title: activityTitle,
-        currentDate: activityDate
+        currentDate: activityDate,
+        problemTypeId: activityProblemTypeId || null
       });
       setShowModal(false);
       setActivityTitle('');
+      setActivityProblemTypeId('');
       fetchActivities();
       fetchCalendarDates();
     } catch (error) {
@@ -240,9 +267,13 @@ const MyActivities = () => {
     if (!activityTitle.trim() || !editingActivity) return;
 
     try {
-      await api.put(`/activities/${editingActivity.id}`, { title: activityTitle });
+      await api.put(`/activities/${editingActivity.id}`, {
+        title: activityTitle,
+        problemTypeId: activityProblemTypeId || null
+      });
       setShowModal(false);
       setActivityTitle('');
+      setActivityProblemTypeId('');
       setEditingActivity(null);
       fetchActivities();
     } catch (error) {
@@ -271,6 +302,7 @@ const MyActivities = () => {
     setActivityTitle('');
     setActivityDate(formatDate(new Date()));
     setEditingActivity(null);
+    setActivityProblemTypeId('');
     setShowModal(true);
   };
 
@@ -279,6 +311,7 @@ const MyActivities = () => {
     setModalMode('edit');
     setActivityTitle(activity.title);
     setEditingActivity(activity);
+    setActivityProblemTypeId(activity.problemType?.id ? String(activity.problemType.id) : '');
     setShowModal(true);
   };
 
@@ -420,6 +453,10 @@ const MyActivities = () => {
                         </button>
                       </div>
                     </div>
+                    <div className="mt-2 text-xs text-gray-600">
+                      <span className="text-gray-500">Tipe masalah: </span>
+                      <span className="font-medium">{activity.problemType?.name || '-'}</span>
+                    </div>
                     {activity.endTime && (
                       <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
@@ -559,7 +596,7 @@ const MyActivities = () => {
               <CardTitle className="text-lg">Filter</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
@@ -576,6 +613,18 @@ const MyActivities = () => {
                   onChange={(v) => setReportFilters(prev => ({ ...prev, status: v }))}
                   aria-label="Filter status laporan"
                 />
+                <Select
+                  value={reportFilters.problemTypeId}
+                  onChange={(e) => setReportFilters(prev => ({ ...prev, problemTypeId: e.target.value }))}
+                  aria-label="Filter tipe masalah laporan"
+                >
+                  <option value="">Semua Tipe Masalah</option>
+                  {problemTypes.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </option>
+                  ))}
+                </Select>
                 <Input
                   type="date"
                   value={reportFilters.dateFrom}
@@ -619,16 +668,19 @@ const MyActivities = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Judul Aktivitas / Deskripsi Masalah</TableHead>
                     <TableHead>Tipe</TableHead>
+                    <TableHead>Waktu Masuk</TableHead>
+                    <TableHead>Waktu Selesai/Batal</TableHead>
+                    <TableHead>Selisih Waktu</TableHead>
+                    <TableHead>Judul Aktivitas / Deskripsi Masalah</TableHead>
+                    <TableHead>Tipe Masalah</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reportPaginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan="4" className="text-center py-8 text-gray-500">
+                      <TableCell colSpan="7" className="text-center py-8 text-gray-500">
                         Tidak ada data
                       </TableCell>
                     </TableRow>
@@ -636,7 +688,18 @@ const MyActivities = () => {
                     reportPaginatedData.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          {new Date(item.date).toLocaleDateString('id-ID')}
+                          <Badge variant={item.type === 'activity' ? 'outline' : 'secondary'}>
+                            {item.type === 'activity' ? 'Aktivitas' : 'Tugas'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatDateTime(item.entryTime || item.startTime)}
+                        </TableCell>
+                        <TableCell>
+                          {formatDateTime(item.completedAt || item.endTime)}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {item.durationMinutes != null ? `${item.durationMinutes} menit` : '-'}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-md">
@@ -647,9 +710,9 @@ const MyActivities = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={item.type === 'activity' ? 'outline' : 'secondary'}>
-                            {item.type === 'activity' ? 'Aktivitas' : 'Tugas'}
-                          </Badge>
+                          <span className="truncate inline-block max-w-[180px]">
+                            {item.problemTypeName || '-'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant={getStatusVariant(item.status)}>
@@ -749,6 +812,23 @@ const MyActivities = () => {
                       />
                     </div>
                   )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipe Masalah
+                    </label>
+                    <Select
+                      value={activityProblemTypeId}
+                      onChange={(e) => setActivityProblemTypeId(e.target.value)}
+                      aria-label="Pilih tipe masalah"
+                    >
+                      <option value="">- Pilih tipe masalah -</option>
+                      {problemTypes.map((pt) => (
+                        <option key={pt.id} value={pt.id}>
+                          {pt.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Judul Aktivitas

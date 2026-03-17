@@ -39,6 +39,9 @@ ActivityLog.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(TechnicianActivity, { foreignKey: 'userId', as: 'technicianActivities' });
 TechnicianActivity.belongsTo(User, { foreignKey: 'userId', as: 'technician' });
 
+TechnicianActivity.belongsTo(ProblemType, { foreignKey: 'problemTypeId', as: 'problemType' });
+ProblemType.hasMany(TechnicianActivity, { foreignKey: 'problemTypeId' });
+
 module.exports = {
   sequelize,
   User,

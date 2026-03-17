@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
-import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 
 const NotificationMenu = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteAllNotifications } = useNotifications();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +38,12 @@ const NotificationMenu = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const ok = window.confirm('Hapus semua notifikasi?');
+    if (!ok) return;
+    await deleteAllNotifications();
+  };
+
   return (
     <div className="relative">
       <Button
@@ -64,17 +70,30 @@ const NotificationMenu = () => {
             <CardHeader className="p-3 sm:p-6">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-base sm:text-lg">Notifikasi</CardTitle>
-                {unreadCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={markAllAsRead}
-                    className="text-xs"
-                  >
-                    <CheckCheck className="w-4 h-4 mr-1" />
-                    Tandai semua
-                  </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={markAllAsRead}
+                      title="Tandai semua dibaca"
+                      aria-label="Tandai semua dibaca"
+                    >
+                      <CheckCheck className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDeleteAll}
+                      title="Hapus semua notifikasi"
+                      aria-label="Hapus semua notifikasi"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0 overflow-y-auto flex-1">
