@@ -9,7 +9,7 @@ Sistem ticketing berbasis web menggunakan **PERN Stack** (PostgreSQL, Express, R
 - [Default Admin](#default-admin-account)
 - [Struktur Project](#struktur-project)
 - [Teknologi](#teknologi)
-- [Fitur](#features)
+- [Fitur](#fitur)
 - [Security](#security)
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
@@ -17,9 +17,9 @@ Sistem ticketing berbasis web menggunakan **PERN Stack** (PostgreSQL, Express, R
 
 ## Prerequisites
 
-- **Node.js** v16+
+- **Node.js** v16+ (LTS disarankan)
 - **PostgreSQL** v12+
-- **npm** atau yarn
+- **npm** (v7+) atau yarn
 
 ## Instalasi
 
@@ -64,14 +64,17 @@ VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@rsud.local
 ```
 
-5. Buat file `.env` di folder `frontend`:
+5. Buat file `.env` di folder `frontend` (lihat `frontend/.env.example`):
 
 ```
-VITE_VAPID_PUBLIC_KEY=your_vapid_public_key_here
+# Opsional: default ke http://<host>:5000/api
 VITE_API_URL=http://localhost:5000/api
+
+# Wajib untuk push notification
+VITE_VAPID_PUBLIC_KEY=your_vapid_public_key_here
 ```
 
-**Catatan**: `VITE_API_URL` bersifat opsional. Frontend menggunakan Vite; variabel env harus berprefix `VITE_`. Jika tidak di-set, frontend akan auto-detect API URL berdasarkan hostname yang digunakan (localhost atau IP address). Ini memudahkan akses dari device lain di network yang sama.
+**Catatan**: Variabel env frontend harus berprefix `VITE_`. Jika `VITE_API_URL` tidak di-set, frontend akan mendeteksi API berdasarkan hostname (localhost atau IP), sehingga bisa diakses dari device lain di network yang sama.
 
 6. Initialize dan seed database (jalankan sekali saat pertama kali setup):
 
@@ -115,35 +118,40 @@ Setelah menjalankan `npm run db:init`, default admin akan dibuat:
 rsud-ticketing-sys/
 ├── backend/          # Express API server
 │   ├── assets/       # Static assets (logo untuk PDF)
+│   ├── config/       # Database config
+│   ├── db/           # DB init/connection
+│   ├── middleware/   # Authentication, logging, dll
 │   ├── models/       # Database models (Sequelize)
 │   ├── routes/       # API routes
-│   ├── middleware/   # Authentication, logging, dll
+│   ├── scripts/      # DB init & seed (init-db.js)
 │   ├── utils/        # Helper functions
 │   └── uploads/      # User uploaded files
-├── frontend/         # React PWA application
-│   ├── public/       # Static files & service worker
+├── frontend/         # React PWA application (Vite)
+│   ├── public/       # Static files, manifest, service worker
 │   └── src/          # React source code
-└── package.json      # Root package.json untuk menjalankan kedua server
+└── package.json      # Root scripts (dev, build, start, install:all)
 ```
 
 ## Teknologi
 
 - **Backend**: Node.js, Express, PostgreSQL, Sequelize
-- **Frontend**: React, Tailwind CSS, PWA
-- **Notifications**: Web Push API
+- **Frontend**: React, Vite, Tailwind CSS, PWA (Workbox)
+- **Notifications**: Web Push API (web-push, VAPID)
 - **Charts**: Recharts
 - **Export**: ExcelJS, PDFKit
+- **QR Code**: qrcode (tracking tiket)
 - **UI Components**: Radix UI, Lucide React icons
-- **Styling**: Tailwind CSS, Class Variance Authority
+- **Styling**: Tailwind CSS, Class Variance Authority (CVA)
 
-## Features
+## Fitur
 
 Ringkasan fitur: notifikasi real-time dengan suara, mobile-first PWA, role-based access (Admin, Teknisi SIMRS, Teknisi IPSRS), co-assignment, dashboard dengan charts, export Excel/PDF, activity logging, system settings (enable/disable kategori IPSRS).
 
 ### Admin
 
 - Dashboard dengan charts (pie, line, bar)
-- Pengaturan user
+- Pengaturan user (User Management)
+- Pengaturan tipe masalah (Problem Types)
 - Monitoring semua tiket
 - Export laporan (Excel/PDF)
 - Soft delete tiket
@@ -198,8 +206,8 @@ Notifikasi akan muncul dan berbunyi ketika:
 
 ### Port already in use
 
-- Ubah PORT di `backend/.env`
-- Ubah port frontend di `frontend/package.json` script start
+- Ubah `PORT` di `backend/.env`
+- Ubah port frontend di `frontend/vite.config.js` (server.port)
 
 ### Notifications tidak muncul
 
@@ -259,9 +267,10 @@ Server akan berjalan di `http://localhost:5000`
 ```bash
 cd frontend
 npm start
+# atau: npm run dev
 ```
 
-Server akan berjalan di `http://localhost:3000`
+Server Vite berjalan di `http://localhost:3000` (lihat `frontend/vite.config.js`).
 
 ### Database Management
 
@@ -288,7 +297,7 @@ cd backend
 npm start
 ```
 
-4. Serve frontend build dengan web server (nginx, apache, atau `npm run serve` di frontend).
+4. Serve frontend build dengan web server (nginx, apache) atau dari frontend: `cd frontend && npm run serve` (listen di `0.0.0.0:3000`).
 
 ---
 
