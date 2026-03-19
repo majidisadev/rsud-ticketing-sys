@@ -388,7 +388,8 @@ router.get(
   async (req, res) => {
     try {
       const technicianId = req.user.id;
-      const { status, search, scope, problemTypeId, dateFrom, dateTo } = req.query;
+      const { status, search, scope, problemTypeId, dateFrom, dateTo } =
+        req.query;
       const isAllTasks = scope === "all";
 
       const roleCategory = {
@@ -542,7 +543,8 @@ router.get(
   async (req, res) => {
     try {
       const technicianId = req.user.id;
-      const { status, search, scope, problemTypeId, dateFrom, dateTo } = req.query;
+      const { status, search, scope, problemTypeId, dateFrom, dateTo } =
+        req.query;
       const isAllTasks = scope === "all";
 
       const roleCategory = { teknisi_simrs: "SIMRS", teknisi_ipsrs: "IPSRS" };
@@ -715,6 +717,271 @@ router.get(
       doc.end();
     } catch (error) {
       console.error("Export PDF error (Technician):", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+);
+
+// Formulir laporan masalah per tiket (PDF) – teknisi + admin
+router.get(
+  "/ticket/:id/form",
+  authenticate,
+  authorize("teknisi_simrs", "teknisi_ipsrs", "admin"),
+  logActivity,
+  async (req, res) => {
+    try {
+      const ticket = await Ticket.findOne({
+        where: { id: req.params.id, isActive: true },
+        include: [
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
+          {
+            model: CoAssignment,
+            as: "coAssignments",
+            include: [
+              {
+                model: User,
+                as: "technician",
+                attributes: ["id", "fullName"],
+              },
+            ],
+          },
+        ],
+      });
+
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      const hasAccess =
+        req.user.role === "admin" ||
+        ticket.assignedTo === req.user.id ||
+        ticket.coAssignments?.some((ca) => ca.technicianId === req.user.id) ||
+        (ticket.status === "Baru" &&
+          ((req.user.role === "teknisi_simrs" && ticket.category === "SIMRS") ||
+            (req.user.role === "teknisi_ipsrs" &&
+              ticket.category === "IPSRS"))) ||
+        (req.user.role === "teknisi_simrs" && ticket.category === "SIMRS") ||
+        (req.user.role === "teknisi_ipsrs" && ticket.category === "IPSRS");
+
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const pageWidth = 595;
+      const leftMargin = 50;
+      const rightMargin = 50;
+      const contentWidth = pageWidth - leftMargin - rightMargin;
+
+      const doc = new PDFDocument({ margin: 50 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=form-laporan-${ticket.ticketNumber || ticket.id}.pdf`,
+      );
+      doc.pipe(res);
+
+      let y = drawLetterhead(doc);
+
+      const titleSuffix =
+        ticket.category === "SIMRS" ? " JARINGAN INFORMASI & SIMRS" : " IPSRS";
+      const formTitle = "FORMULIR LAPORAN MASALAH" + titleSuffix;
+
+      doc
+        .fontSize(12)
+        .fillColor("#000000")
+        .font("Helvetica-Bold")
+        .text(formTitle, leftMargin, y, {
+          width: contentWidth,
+          align: "center",
+          underline: true,
+        });
+      y += 22;
+
+      const labelFontSize = 10;
+      const lineHeight = 16;
+      const signatureBlankRows = 5;
+      const signatureRowHeight = lineHeight;
+      doc.fontSize(labelFontSize).font("Helvetica");
+
+      const unitLabel = "UNIT KERJA INSTALASI:";
+      doc.text(unitLabel, leftMargin, y);
+      const unitValue = ticket.reporterUnit || "-";
+      const unitX = leftMargin + 165;
+      doc.text(unitValue, unitX, y);
+      y += lineHeight;
+      doc
+        .strokeColor("#000000")
+        .lineWidth(0.5)
+        .moveTo(unitX, y - 2)
+        .lineTo(pageWidth - rightMargin, y - 2)
+        .stroke();
+      y += 10;
+
+      const tglLabel = "TANGGAL LAPORAN:";
+      doc.text(tglLabel, leftMargin, y);
+      const tglValue = moment(ticket.createdAt)
+        .locale("id")
+        .format("DD MMMM YYYY");
+      doc.text(tglValue, leftMargin + 165, y);
+      y += lineHeight;
+      doc
+        .moveTo(leftMargin + 165, y - 2)
+        .lineTo(pageWidth - rightMargin, y - 2)
+        .stroke();
+      y += 14;
+
+      doc.text("LAPORAN MASALAH:", leftMargin, y);
+      y += lineHeight;
+      const descText = ticket.description || "-";
+      doc.font("Helvetica-Bold");
+      const descTextH = doc.heightOfString(descText, { width: contentWidth });
+      doc.text(descText, leftMargin, y, { width: contentWidth });
+      doc.font("Helvetica");
+      y += descTextH + 4;
+      doc
+        .moveTo(leftMargin, y)
+        .lineTo(pageWidth - rightMargin, y)
+        .stroke();
+      y += 14;
+
+      const sigBlockY = y;
+      const colWidth = contentWidth / 2;
+      const leftSignatureWidth = colWidth - 20;
+      const rightSignatureWidth = colWidth;
+      const sigTopLineY =
+        sigBlockY + 12 + signatureBlankRows * signatureRowHeight;
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("DIKETAHUI", leftMargin, sigBlockY, {
+        width: leftSignatureWidth,
+        align: "center",
+      });
+      doc.text("KA. INSTALASI/KA. RUANGAN", leftMargin, sigBlockY + 12, {
+        width: leftSignatureWidth,
+        align: "center",
+      });
+      doc.font("Helvetica").fontSize(9);
+      doc
+        .moveTo(leftMargin, sigTopLineY)
+        .lineTo(leftMargin + colWidth - 20, sigTopLineY)
+        .stroke();
+
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("DIBUAT OLEH", leftMargin + colWidth, sigBlockY, {
+        width: rightSignatureWidth,
+        align: "center",
+      });
+      doc.font("Helvetica").fontSize(9);
+      doc
+        .moveTo(leftMargin + colWidth, sigTopLineY)
+        .lineTo(pageWidth - rightMargin, sigTopLineY)
+        .stroke();
+
+      y = sigTopLineY + 20;
+
+      doc
+        .strokeColor("#000000")
+        .lineWidth(2)
+        .moveTo(leftMargin, y)
+        .lineTo(pageWidth - rightMargin, y)
+        .stroke();
+      y += 16;
+
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .fillColor("#000000")
+        .text("HASIL PENINJAUAN", leftMargin, y, {
+          width: contentWidth,
+          align: "center",
+          underline: true,
+        });
+      y += 22;
+      doc.lineWidth(0.5);
+
+      doc.fontSize(labelFontSize).font("Helvetica");
+      doc.text("DITERIMA TANGGAL:", leftMargin, y);
+      const diterimaAt = ticket.pickedUpAt
+        ? moment(ticket.pickedUpAt).locale("id").format("DD MMMM YYYY")
+        : moment(ticket.createdAt).locale("id").format("DD MMMM YYYY");
+      doc.text(diterimaAt, leftMargin + 165, y);
+      y += lineHeight;
+      doc
+        .moveTo(leftMargin + 165, y - 2)
+        .lineTo(pageWidth - rightMargin, y - 2)
+        .stroke();
+      y += 10;
+
+      doc.text("DIKERJAKAN OLEH:", leftMargin, y);
+      const teknisiUtama = ticket.assignedTechnician?.fullName;
+      const teknisiCo =
+        ticket.coAssignments && ticket.coAssignments.length
+          ? ticket.coAssignments
+              .map((ca) => ca.technician?.fullName)
+              .filter(Boolean)
+          : [];
+      const teknisiList = [
+        ...(teknisiUtama ? [teknisiUtama] : []),
+        ...teknisiCo,
+      ];
+      const dikerjakanOleh =
+        teknisiList.length > 0 ? teknisiList.join(", ") : "-";
+      doc.text(dikerjakanOleh, leftMargin + 165, y);
+      y += lineHeight;
+      doc
+        .moveTo(leftMargin + 165, y - 2)
+        .lineTo(pageWidth - rightMargin, y - 2)
+        .stroke();
+      y += 14;
+
+      doc.text("HASIL PEKERJAAN:", leftMargin, y);
+      y += lineHeight;
+      const hasilText = ticket.workResult?.trim() || "-";
+      doc.font("Helvetica-Bold");
+      const hasilTextH = doc.heightOfString(hasilText, { width: contentWidth });
+      doc.text(hasilText, leftMargin, y, { width: contentWidth });
+      doc.font("Helvetica");
+      y += hasilTextH + 4;
+      doc
+        .moveTo(leftMargin, y)
+        .lineTo(pageWidth - rightMargin, y)
+        .stroke();
+      y += 22;
+
+      const sigBottomY = y;
+      const sigBottomLineY =
+        sigBottomY + 12 + signatureBlankRows * signatureRowHeight;
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("DIKETAHUI", leftMargin, sigBottomY, {
+        width: leftSignatureWidth,
+        align: "center",
+      });
+      doc.text("KA. INSTALASI/KA. RUANGAN", leftMargin, sigBottomY + 12, {
+        width: leftSignatureWidth,
+        align: "center",
+      });
+      doc.font("Helvetica").fontSize(9);
+      doc
+        .moveTo(leftMargin, sigBottomLineY)
+        .lineTo(leftMargin + colWidth - 20, sigBottomLineY)
+        .stroke();
+
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("PETUGAS", leftMargin + colWidth, sigBottomY, {
+        width: rightSignatureWidth,
+        align: "center",
+      });
+      doc.font("Helvetica").fontSize(9);
+      doc
+        .moveTo(leftMargin + colWidth, sigBottomLineY)
+        .lineTo(pageWidth - rightMargin, sigBottomLineY)
+        .stroke();
+      doc.end();
+    } catch (error) {
+      console.error("Form PDF error:", error);
       res.status(500).json({ message: "Server error" });
     }
   },

@@ -29,6 +29,7 @@ import {
   Ticket,
   FileText,
   Image,
+  Printer,
 } from "lucide-react";
 
 const TicketDetail = () => {
@@ -44,6 +45,7 @@ const TicketDetail = () => {
   const [showActionModal, setShowActionModal] = useState(false);
   const [workResultDraft, setWorkResultDraft] = useState("");
   const [workResultSaveState, setWorkResultSaveState] = useState("idle"); // idle | saving | saved | error
+  const [printFormLoading, setPrintFormLoading] = useState(false);
 
   const containerRef = useRef(null);
   const leftColRef = useRef(null);
@@ -167,6 +169,38 @@ const TicketDetail = () => {
       alert("Tiket berhasil diambil");
     } catch (error) {
       alert(error.response?.data?.message || "Terjadi kesalahan");
+    }
+  };
+
+  const handlePrintForm = async () => {
+    if (!id) return;
+    setPrintFormLoading(true);
+    try {
+      const res = await api.get(`/reports/ticket/${id}/form`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const fileURL = URL.createObjectURL(blob);
+      window.open(fileURL, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(fileURL), 60000);
+    } catch (error) {
+      let msg = "Gagal mengunduh form laporan.";
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) msg = parsed.message;
+        } catch (_) {
+          // keep default msg
+        }
+      } else if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      } else if (error.message) {
+        msg = error.message;
+      }
+      alert(msg);
+    } finally {
+      setPrintFormLoading(false);
     }
   };
 
@@ -308,6 +342,17 @@ const TicketDetail = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {user?.role !== "admin" && (
+            <Button
+              onClick={handlePrintForm}
+              disabled={printFormLoading}
+              variant="outline"
+              aria-label="Cetak form laporan masalah"
+            >
+              <Printer className="w-4 h-4 mr-2" aria-hidden />
+              {printFormLoading ? "Membuka..." : "Cetak Form Laporan"}
+            </Button>
+          )}
           {canTake && (
             <Button
               onClick={handleTakeTicket}
