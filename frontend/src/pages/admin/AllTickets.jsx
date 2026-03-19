@@ -47,6 +47,12 @@ const AllTicketsAdmin = () => {
   const tableCardRef = useRef(null);
 
   const [tickets, setTickets] = useState([]);
+  const [statusTotals, setStatusTotals] = useState({
+    Baru: 0,
+    Diproses: 0,
+    Selesai: 0,
+    Batal: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(initialState.page);
   const [perPage, setPerPage] = useState(initialState.perPage);
@@ -87,6 +93,7 @@ const AllTicketsAdmin = () => {
       setTickets(res.data.tickets);
       setTotalPages(res.data.totalPages);
       setTotalItems(res.data.total ?? 0);
+      setStatusTotals(res.data.statusTotals || {});
     } catch (error) {
       console.error('Fetch tickets error:', error);
     } finally {
@@ -169,6 +176,17 @@ const AllTicketsAdmin = () => {
     return variants[status] || 'secondary';
   };
 
+  const getStatusIcon = (status) => {
+    const icons = {
+      Baru: Inbox,
+      Diproses: Clock,
+      Selesai: CheckCircle,
+      Batal: XCircle
+    };
+    const Icon = icons[status];
+    return Icon ? <Icon className="w-3.5 h-3.5" aria-hidden /> : null;
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4" role="status" aria-live="polite" aria-label="Memuat tiket">
@@ -216,6 +234,28 @@ const AllTicketsAdmin = () => {
                 autoComplete="off"
               />
             </div>
+            <div className="space-y-2">
+              <label htmlFor="date-from-tickets" className="sr-only">Dari Tanggal</label>
+              <Input
+                id="date-from-tickets"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                aria-label="Dari tanggal"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="date-to-tickets" className="sr-only">Sampai Tanggal</label>
+              <Input
+                id="date-to-tickets"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                aria-label="Sampai tanggal"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatusFilterSelect
               variant="ticket"
               value={filters.status}
@@ -231,24 +271,6 @@ const AllTicketsAdmin = () => {
               <option value="SIMRS">SIMRS</option>
               <option value="IPSRS">IPSRS</option>
             </Select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label htmlFor="date-from-tickets" className="sr-only">Dari Tanggal</label>
-            <Input
-              id="date-from-tickets"
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-              aria-label="Dari tanggal"
-            />
-            <label htmlFor="date-to-tickets" className="sr-only">Sampai Tanggal</label>
-            <Input
-              id="date-to-tickets"
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-              aria-label="Sampai tanggal"
-            />
             <Select
               value={filters.problemTypeId}
               onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
@@ -274,7 +296,7 @@ const AllTicketsAdmin = () => {
               <div>
                 <p className="text-sm text-gray-500 font-medium">Baru</p>
                 <p className="text-xl font-bold text-blue-600 tabular-nums">
-                  {tickets.filter((t) => t.status === 'Baru').length}
+                  {statusTotals.Baru ?? 0}
                 </p>
               </div>
             </div>
@@ -289,7 +311,7 @@ const AllTicketsAdmin = () => {
               <div>
                 <p className="text-sm text-gray-500 font-medium">Diproses</p>
                 <p className="text-xl font-bold text-amber-600 tabular-nums">
-                  {tickets.filter((t) => t.status === 'Diproses').length}
+                  {statusTotals.Diproses ?? 0}
                 </p>
               </div>
             </div>
@@ -304,7 +326,7 @@ const AllTicketsAdmin = () => {
               <div>
                 <p className="text-sm text-gray-500 font-medium">Selesai</p>
                 <p className="text-xl font-bold text-emerald-600 tabular-nums">
-                  {tickets.filter((t) => t.status === 'Selesai').length}
+                  {statusTotals.Selesai ?? 0}
                 </p>
               </div>
             </div>
@@ -319,7 +341,7 @@ const AllTicketsAdmin = () => {
               <div>
                 <p className="text-sm text-gray-500 font-medium">Batal</p>
                 <p className="text-xl font-bold text-red-600 tabular-nums">
-                  {tickets.filter((t) => t.status === 'Batal').length}
+                  {statusTotals.Batal ?? 0}
                 </p>
               </div>
             </div>
@@ -420,7 +442,10 @@ const AllTicketsAdmin = () => {
                     <TableCell>{ticket.problemType?.name || '-'}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(ticket.status)}>
-                        {ticket.status}
+                        <span className="inline-flex items-center gap-1">
+                          {getStatusIcon(ticket.status)}
+                          {ticket.status}
+                        </span>
                       </Badge>
                     </TableCell>
                     <TableCell>

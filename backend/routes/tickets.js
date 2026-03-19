@@ -1,7 +1,13 @@
 const express = require("express");
-const { Op } = require("sequelize");
+const { Op, fn, col } = require("sequelize");
 const { body, validationResult } = require("express-validator");
-const { Ticket, TicketAction, User, CoAssignment, ProblemType } = require("../models");
+const {
+  Ticket,
+  TicketAction,
+  User,
+  CoAssignment,
+  ProblemType,
+} = require("../models");
 const { authenticate, authorize } = require("../middleware/auth");
 const logActivity = require("../middleware/activityLogger");
 const upload = require("../utils/fileUpload");
@@ -56,7 +62,7 @@ router.post(
       console.error("Create ticket error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Public: Get ticket by number (for tracking)
@@ -120,6 +126,23 @@ function parseLimit(queryLimit) {
   return PER_PAGE_OPTIONS.includes(n) ? n : 20;
 }
 
+async function getStatusTotals(where) {
+  const statusGroups = await Ticket.findAll({
+    where,
+    attributes: ["status", [fn("COUNT", col("id")), "count"]],
+    group: ["status"],
+    raw: true,
+  });
+
+  // Ensure deterministic keys for frontend cards.
+  const totals = { Baru: 0, Diproses: 0, Selesai: 0, Batal: 0 };
+  for (const row of statusGroups) {
+    const status = row.status;
+    totals[status] = Number(row.count) || 0;
+  }
+  return totals;
+}
+
 // Get all tickets (with filters and pagination)
 router.get("/", authenticate, logActivity, async (req, res) => {
   try {
@@ -168,6 +191,8 @@ router.get("/", authenticate, logActivity, async (req, res) => {
       ];
     }
 
+    const statusTotals = await getStatusTotals(where);
+
     // Prepare includes array
     const includes = [
       {
@@ -195,6 +220,7 @@ router.get("/", authenticate, logActivity, async (req, res) => {
       total: count,
       page,
       totalPages: Math.ceil(count / limit),
+      statusTotals,
     });
   } catch (error) {
     console.error("Get tickets error:", error);
@@ -209,7 +235,10 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
     const limit = parseLimit(req.query.limit);
     const offset = (page - 1) * limit;
     const statusFilter = req.query.status;
+    const problemTypeIdFilter = req.query.problemTypeId;
     const search = req.query.search;
+    const dateFrom = req.query.dateFrom;
+    const dateTo = req.query.dateTo;
 
     // Get co-assigned ticket IDs
     const coAssignments = await CoAssignment.findAll({
@@ -230,6 +259,16 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
       where.status = statusFilter;
     }
 
+    if (problemTypeIdFilter) {
+      where.problemTypeId = problemTypeIdFilter;
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+      if (dateTo) where.createdAt[Op.lte] = new Date(dateTo + "T23:59:59");
+    }
+
     if (search) {
       where[Op.and] = [
         ...(where[Op.and] || []),
@@ -242,6 +281,8 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
         },
       ];
     }
+
+    const statusTotals = await getStatusTotals(where);
 
     const includes = [
       {
@@ -294,6 +335,7 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
       total: count,
       page,
       totalPages: Math.ceil(count / limit) || 1,
+      statusTotals,
     });
   } catch (error) {
     console.error("Get my tasks error:", error);
@@ -414,7 +456,7 @@ router.post(
       console.error("Take ticket error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Co-assign ticket
@@ -476,7 +518,7 @@ router.post(
       console.error("Co-assign error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Update ticket status
@@ -529,7 +571,7 @@ router.patch(
       console.error("Update status error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Update problem type (tipe masalah)
@@ -568,14 +610,20 @@ router.patch(
       if (req.user.role === "admin") {
         return res
           .status(403)
-          .json({ message: "Admin cannot update tipe masalah from this endpoint" });
+          .json({
+            message: "Admin cannot update tipe masalah from this endpoint",
+          });
       }
 
-      const problemTypeId = req.body.problemTypeId ? parseInt(req.body.problemTypeId, 10) : null;
+      const problemTypeId = req.body.problemTypeId
+        ? parseInt(req.body.problemTypeId, 10)
+        : null;
       if (problemTypeId != null) {
         const exists = await ProblemType.findByPk(problemTypeId);
         if (!exists) {
-          return res.status(400).json({ message: "Tipe masalah tidak ditemukan" });
+          return res
+            .status(400)
+            .json({ message: "Tipe masalah tidak ditemukan" });
         }
       }
       ticket.problemTypeId = problemTypeId;
@@ -583,8 +631,16 @@ router.patch(
 
       const updated = await Ticket.findByPk(ticket.id, {
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
-          { model: ProblemType, as: "problemType", attributes: ["id", "name", "slug"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
+          {
+            model: ProblemType,
+            as: "problemType",
+            attributes: ["id", "name", "slug"],
+          },
         ],
       });
       res.json(updated);
@@ -592,7 +648,7 @@ router.patch(
       console.error("Update problem type error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Add action
@@ -656,7 +712,7 @@ router.post(
       console.error("Add action error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Upload proof photo
@@ -699,7 +755,60 @@ router.post(
       console.error("Upload proof error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
+);
+
+// Update work result (hasil pekerjaan)
+router.patch(
+  "/:id/work-result",
+  authenticate,
+  logActivity,
+  [
+    body("workResult")
+      .optional({ nullable: true })
+      .isString()
+      .withMessage("workResult must be a string or null"),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const ticket = await Ticket.findByPk(req.params.id);
+
+      if (!ticket || !ticket.isActive) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Check access
+      const isAssigned = ticket.assignedTo === req.user.id;
+      const isCoAssigned = await CoAssignment.findOne({
+        where: { ticketId: ticket.id, technicianId: req.user.id },
+      });
+
+      if (!isAssigned && !isCoAssigned && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Admin cannot update work result
+      if (req.user.role === "admin") {
+        return res
+          .status(403)
+          .json({ message: "Admin cannot update work result" });
+      }
+
+      ticket.workResult =
+        req.body.workResult == null ? null : String(req.body.workResult);
+      await ticket.save();
+
+      res.json(ticket);
+    } catch (error) {
+      console.error("Update work result error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
 );
 
 // Admin: update ticket timestamps (waktu masuk, waktu ambil, waktu terakhir update)
@@ -709,9 +818,18 @@ router.patch(
   authorize("admin"),
   logActivity,
   [
-    body("createdAt").optional().isISO8601().withMessage("createdAt must be valid ISO date"),
-    body("pickedUpAt").optional().isISO8601().withMessage("pickedUpAt must be valid ISO date"),
-    body("lastStatusChangeAt").optional().isISO8601().withMessage("lastStatusChangeAt must be valid ISO date"),
+    body("createdAt")
+      .optional()
+      .isISO8601()
+      .withMessage("createdAt must be valid ISO date"),
+    body("pickedUpAt")
+      .optional()
+      .isISO8601()
+      .withMessage("pickedUpAt must be valid ISO date"),
+    body("lastStatusChangeAt")
+      .optional()
+      .isISO8601()
+      .withMessage("lastStatusChangeAt must be valid ISO date"),
   ],
   async (req, res) => {
     try {
@@ -742,8 +860,16 @@ router.patch(
       }
       const updated = await Ticket.findByPk(ticket.id, {
         include: [
-          { model: User, as: "assignedTechnician", attributes: ["id", "fullName"] },
-          { model: ProblemType, as: "problemType", attributes: ["id", "name", "slug"] },
+          {
+            model: User,
+            as: "assignedTechnician",
+            attributes: ["id", "fullName"],
+          },
+          {
+            model: ProblemType,
+            as: "problemType",
+            attributes: ["id", "name", "slug"],
+          },
         ],
       });
       res.json(updated);
@@ -751,7 +877,7 @@ router.patch(
       console.error("Admin update ticket error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Soft delete (admin only)
@@ -776,7 +902,7 @@ router.delete(
       console.error("Delete ticket error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 module.exports = router;

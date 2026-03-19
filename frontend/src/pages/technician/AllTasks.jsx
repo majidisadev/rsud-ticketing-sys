@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../../config/api";
-import ActionModal from "../../components/ActionModal";
 import {
   useAdminPageAnimation,
   useStaggerListAnimation,
@@ -29,7 +28,6 @@ import { Label } from "../../components/ui/label";
 import {
   Search,
   Eye,
-  Plus,
   CheckCircle,
   Inbox,
   Clock,
@@ -78,13 +76,17 @@ const getInitialState = () => {
 const TechnicianAllTasks = () => {
   const initialState = getInitialState();
   const [tickets, setTickets] = useState([]);
+  const [statusTotals, setStatusTotals] = useState({
+    Baru: 0,
+    Diproses: 0,
+    Selesai: 0,
+    Batal: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(initialState.page);
   const [perPage, setPerPage] = useState(initialState.perPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [showActionModal, setShowActionModal] = useState(false);
   const [filters, setFilters] = useState(initialState.filters);
   const [problemTypes, setProblemTypes] = useState([]);
 
@@ -134,6 +136,7 @@ const TechnicianAllTasks = () => {
       setTickets(res.data.tickets);
       setTotalPages(res.data.totalPages);
       setTotalItems(res.data.total ?? 0);
+      setStatusTotals(res.data.statusTotals || {});
     } catch (error) {
       console.error("Fetch tickets error:", error);
     } finally {
@@ -161,11 +164,6 @@ const TechnicianAllTasks = () => {
     }
   };
 
-  const handleOpenActionModal = (ticket) => {
-    setSelectedTicket(ticket);
-    setShowActionModal(true);
-  };
-
   const getStatusVariant = (status) => {
     const variants = {
       Baru: "default",
@@ -174,6 +172,17 @@ const TechnicianAllTasks = () => {
       Batal: "destructive",
     };
     return variants[status] || "secondary";
+  };
+
+  const getStatusIcon = (status) => {
+    const icons = {
+      Baru: Inbox,
+      Diproses: Clock,
+      Selesai: CheckCircle,
+      Batal: XCircle,
+    };
+    const Icon = icons[status];
+    return Icon ? <Icon className="w-3.5 h-3.5" aria-hidden /> : null;
   };
 
   const getProblemTypeColor = (slugOrName) => {
@@ -227,7 +236,7 @@ const TechnicianAllTasks = () => {
           </CardTitle>
         </CardHeader>
         <CardContent aria-labelledby="filter-heading">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="relative">
               <Label htmlFor="all-tasks-search" className="sr-only">
                 Cari
@@ -279,10 +288,7 @@ const TechnicianAllTasks = () => {
                 ))}
               </Select>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="all-tasks-date-from">Dari Tanggal</Label>
               <Input
                 id="all-tasks-date-from"
                 type="date"
@@ -292,7 +298,6 @@ const TechnicianAllTasks = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="all-tasks-date-to">Sampai Tanggal</Label>
               <Input
                 id="all-tasks-date-to"
                 type="date"
@@ -325,7 +330,7 @@ const TechnicianAllTasks = () => {
                   className="text-xl font-bold text-blue-600"
                   aria-live="polite"
                 >
-                  {tickets.filter((t) => t.status === "Baru").length}
+                  {statusTotals.Baru ?? 0}
                 </p>
               </div>
             </div>
@@ -346,7 +351,7 @@ const TechnicianAllTasks = () => {
                   className="text-xl font-bold text-amber-600"
                   aria-live="polite"
                 >
-                  {tickets.filter((t) => t.status === "Diproses").length}
+                  {statusTotals.Diproses ?? 0}
                 </p>
               </div>
             </div>
@@ -367,7 +372,7 @@ const TechnicianAllTasks = () => {
                   className="text-xl font-bold text-green-600"
                   aria-live="polite"
                 >
-                  {tickets.filter((t) => t.status === "Selesai").length}
+                  {statusTotals.Selesai ?? 0}
                 </p>
               </div>
             </div>
@@ -388,7 +393,7 @@ const TechnicianAllTasks = () => {
                   className="text-xl font-bold text-red-600"
                   aria-live="polite"
                 >
-                  {tickets.filter((t) => t.status === "Batal").length}
+                  {statusTotals.Batal ?? 0}
                 </p>
               </div>
             </div>
@@ -474,7 +479,10 @@ const TechnicianAllTasks = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(ticket.status)}>
-                        {ticket.status}
+                        <span className="inline-flex items-center gap-1">
+                          {getStatusIcon(ticket.status)}
+                          {ticket.status}
+                        </span>
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -491,22 +499,14 @@ const TechnicianAllTasks = () => {
                             Ambil
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenActionModal(ticket)}
-                          aria-label={`Tambah tindakan untuk tiket ${ticket.ticketNumber}`}
-                        >
-                          <Plus className="w-4 h-4 mr-1" aria-hidden />
-                          Tindakan
-                        </Button>
                         <Link to={`/technician/ticket/${ticket.id}`}>
                           <Button
                             variant="ghost"
                             size="sm"
                             aria-label={`Lihat detail tiket ${ticket.ticketNumber}`}
                           >
-                            <Eye className="w-4 h-4" aria-hidden />
+                            <Eye className="w-4 h-4 mr-2" aria-hidden />
+                            Detail
                           </Button>
                         </Link>
                       </div>
@@ -545,17 +545,6 @@ const TechnicianAllTasks = () => {
         </Button>
       </nav>
 
-      {/* Action Modal */}
-      {showActionModal && selectedTicket && (
-        <ActionModal
-          ticket={selectedTicket}
-          onClose={() => {
-            setShowActionModal(false);
-            setSelectedTicket(null);
-          }}
-          onUpdate={fetchTickets}
-        />
-      )}
     </main>
   );
 };

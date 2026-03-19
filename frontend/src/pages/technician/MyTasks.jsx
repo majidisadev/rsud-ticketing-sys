@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { Search, Eye, Download, Clock, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
+import { Search, Eye, Download, Clock, CheckCircle, XCircle, ClipboardList, Inbox } from 'lucide-react';
 
 const STORAGE_KEY = 'myTasksFilters';
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
@@ -22,24 +22,42 @@ const getInitialState = () => {
       const data = JSON.parse(raw);
       const perPage = PER_PAGE_OPTIONS.includes(Number(data.perPage)) ? Number(data.perPage) : 20;
       return {
-        filters: { search: '', status: '', ...data.filters },
+        filters: {
+          search: '',
+          status: '',
+          problemTypeId: '',
+          dateFrom: '',
+          dateTo: '',
+          ...data.filters
+        },
         page: typeof data.page === 'number' ? data.page : 1,
         perPage
       };
     }
   } catch (_) {}
-  return { filters: { search: '', status: '' }, page: 1, perPage: 20 };
+  return {
+    filters: { search: '', status: '', problemTypeId: '', dateFrom: '', dateTo: '' },
+    page: 1,
+    perPage: 20
+  };
 };
 
 const TechnicianMyTasks = () => {
   const initialState = getInitialState();
   const [tickets, setTickets] = useState([]);
+  const [statusTotals, setStatusTotals] = useState({
+    Baru: 0,
+    Diproses: 0,
+    Selesai: 0,
+    Batal: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(initialState.page);
   const [perPage, setPerPage] = useState(initialState.perPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState(initialState.filters);
+  const [problemTypes, setProblemTypes] = useState([]);
 
   const containerRef = useRef(null);
   const cardStatRefs = [useRef(null), useRef(null), useRef(null)];
@@ -57,6 +75,19 @@ const TechnicianMyTasks = () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ filters, page, perPage }));
   }, [filters, page, perPage]);
 
+  useEffect(() => {
+    const fetchProblemTypes = async () => {
+      try {
+        const res = await api.get('/problem-types');
+        setProblemTypes(res.data || []);
+      } catch (e) {
+        console.error('Fetch problem types error:', e);
+      }
+    };
+
+    fetchProblemTypes();
+  }, []);
+
   const fetchTickets = async () => {
     try {
       const params = new URLSearchParams({
@@ -68,6 +99,7 @@ const TechnicianMyTasks = () => {
       setTickets(res.data.tickets);
       setTotalPages(res.data.totalPages);
       setTotalItems(res.data.total ?? 0);
+      setStatusTotals(res.data.statusTotals || {});
     } catch (error) {
       console.error('Fetch my tasks error:', error);
     } finally {
@@ -132,6 +164,17 @@ const TechnicianMyTasks = () => {
     return variants[status] || 'secondary';
   };
 
+  const getStatusIcon = (status) => {
+    const icons = {
+      Baru: Inbox,
+      Diproses: Clock,
+      Selesai: CheckCircle,
+      Batal: XCircle
+    };
+    const Icon = icons[status];
+    return Icon ? <Icon className="w-3.5 h-3.5" aria-hidden /> : null;
+  };
+
   const getProblemTypeColor = (slugOrName) => {
     const s = (slugOrName || '').toLowerCase();
     if (s === 'rendah') return 'text-green-600 font-semibold';
@@ -193,7 +236,7 @@ const TechnicianMyTasks = () => {
           <CardTitle className="text-lg" id="my-tasks-filter-heading">Filter</CardTitle>
         </CardHeader>
         <CardContent aria-labelledby="my-tasks-filter-heading">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="relative">
               <Label htmlFor="my-tasks-search" className="sr-only">Cari</Label>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden />
@@ -219,6 +262,42 @@ const TechnicianMyTasks = () => {
                 aria-label="Filter berdasarkan status"
               />
             </div>
+            <div>
+              <Label htmlFor="my-tasks-problem-type" className="sr-only">Tipe Masalah</Label>
+              <Select
+                id="my-tasks-problem-type"
+                value={filters.problemTypeId}
+                onChange={(e) => handleFilterChange('problemTypeId', e.target.value)}
+                aria-label="Filter berdasarkan tipe masalah"
+              >
+                <option value="">Semua Tipe Masalah</option>
+                {problemTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>
+                    {pt.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="my-tasks-date-from" className="sr-only">Dari Tanggal</Label>
+              <Input
+                id="my-tasks-date-from"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                aria-label="Filter dari tanggal (waktu masuk)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="my-tasks-date-to" className="sr-only">Sampai Tanggal</Label>
+              <Input
+                id="my-tasks-date-to"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                aria-label="Filter sampai tanggal (waktu masuk)"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -234,7 +313,7 @@ const TechnicianMyTasks = () => {
               <div>
                 <p className="text-sm text-gray-500">Diproses</p>
                 <p className="text-xl font-bold text-amber-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Diproses').length}
+                  {statusTotals.Diproses ?? 0}
                 </p>
               </div>
             </div>
@@ -249,7 +328,7 @@ const TechnicianMyTasks = () => {
               <div>
                 <p className="text-sm text-gray-500">Selesai</p>
                 <p className="text-xl font-bold text-green-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Selesai').length}
+                  {statusTotals.Selesai ?? 0}
                 </p>
               </div>
             </div>
@@ -264,7 +343,7 @@ const TechnicianMyTasks = () => {
               <div>
                 <p className="text-sm text-gray-500">Batal</p>
                 <p className="text-xl font-bold text-red-600" aria-live="polite">
-                  {tickets.filter((t) => t.status === 'Batal').length}
+                  {statusTotals.Batal ?? 0}
                 </p>
               </div>
             </div>
@@ -360,7 +439,10 @@ const TechnicianMyTasks = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant={getStatusVariant(ticket.status)}>
-                            {ticket.status}
+                            <span className="inline-flex items-center gap-1">
+                              {getStatusIcon(ticket.status)}
+                              {ticket.status}
+                            </span>
                           </Badge>
                         </TableCell>
                         <TableCell>

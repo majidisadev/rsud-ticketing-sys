@@ -388,7 +388,7 @@ router.get(
   async (req, res) => {
     try {
       const technicianId = req.user.id;
-      const { status, search, scope } = req.query;
+      const { status, search, scope, problemTypeId, dateFrom, dateTo } = req.query;
       const isAllTasks = scope === "all";
 
       const roleCategory = {
@@ -412,6 +412,12 @@ router.get(
       }
 
       if (status) where.status = status;
+      if (problemTypeId) where.problemTypeId = problemTypeId;
+      if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+        if (dateTo) where.createdAt[Op.lte] = new Date(dateTo + "T23:59:59");
+      }
       if (search) {
         where[Op.and] = [
           ...(where[Op.and] || []),
@@ -536,7 +542,7 @@ router.get(
   async (req, res) => {
     try {
       const technicianId = req.user.id;
-      const { status, search, scope } = req.query;
+      const { status, search, scope, problemTypeId, dateFrom, dateTo } = req.query;
       const isAllTasks = scope === "all";
 
       const roleCategory = { teknisi_simrs: "SIMRS", teknisi_ipsrs: "IPSRS" };
@@ -555,6 +561,12 @@ router.get(
         ];
       }
       if (status) where.status = status;
+      if (problemTypeId) where.problemTypeId = problemTypeId;
+      if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+        if (dateTo) where.createdAt[Op.lte] = new Date(dateTo + "T23:59:59");
+      }
       if (search) {
         where[Op.and] = [
           ...(where[Op.and] || []),

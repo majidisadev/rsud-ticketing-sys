@@ -280,6 +280,17 @@ const AdminTicketDetail = () => {
             </CardContent>
           </Card>
 
+          <Card className="shadow-sm border-gray-200/80 transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Hasil Pekerjaan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                {ticket.workResult?.trim() ? ticket.workResult : "-"}
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Photos */}
           {ticket.photoUrl && (
             <Card className="shadow-sm border-gray-200/80 overflow-hidden">
@@ -300,12 +311,12 @@ const AdminTicketDetail = () => {
             </Card>
           )}
 
-          {ticket.proofPhotoUrl && (
-            <Card className="shadow-sm border-gray-200/80 overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-lg">Bukti Perbaikan</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card className="shadow-sm border-gray-200/80 overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-lg">Bukti Perbaikan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ticket.proofPhotoUrl ? (
                 <img
                   src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
                   alt="Bukti foto perbaikan"
@@ -315,9 +326,11 @@ const AdminTicketDetail = () => {
                     console.error('Image load error:', ticket.proofPhotoUrl);
                   }}
                 />
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-gray-500">Belum ada bukti perbaikan</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Co-Assignments */}
           {ticket.coAssignments && ticket.coAssignments.length > 0 && (

@@ -42,6 +42,8 @@ const TicketDetail = () => {
   const [showCoAssignModal, setShowCoAssignModal] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState("");
   const [showActionModal, setShowActionModal] = useState(false);
+  const [workResultDraft, setWorkResultDraft] = useState("");
+  const [workResultSaveState, setWorkResultSaveState] = useState("idle"); // idle | saving | saved | error
 
   const containerRef = useRef(null);
   const leftColRef = useRef(null);
@@ -168,6 +170,12 @@ const TicketDetail = () => {
     }
   };
 
+  useEffect(() => {
+    if (!ticket) return;
+    setWorkResultDraft(ticket.workResult ?? "");
+    setWorkResultSaveState("idle");
+  }, [ticket?.id]);
+
   // Can view: all tickets that match user's role (handled by backend)
   const canView = ticket && user?.role !== "admin";
 
@@ -177,6 +185,27 @@ const TicketDetail = () => {
     user &&
     (ticket.assignedTo === user.id ||
       ticket.coAssignments?.some((ca) => ca.technicianId === user.id));
+
+  const handleWorkResultBlur = async () => {
+    if (!canEdit || user?.role === "admin") return;
+    const current = ticket?.workResult ?? "";
+    if ((workResultDraft ?? "") === current) return;
+    try {
+      setWorkResultSaveState("saving");
+      const res = await api.patch(`/tickets/${id}/work-result`, {
+        workResult: workResultDraft,
+      });
+      const nextWorkResult = res?.data?.workResult ?? workResultDraft ?? "";
+      setTicket((prev) =>
+        prev ? { ...prev, workResult: nextWorkResult } : prev,
+      );
+      setWorkResultSaveState("saved");
+      window.setTimeout(() => setWorkResultSaveState("idle"), 1500);
+    } catch (error) {
+      console.error("Save work result error:", error);
+      setWorkResultSaveState("error");
+    }
+  };
 
   // Can take: only for "Baru" status tickets that match user's role and not yet taken
   const canTake =
@@ -448,12 +477,67 @@ const TicketDetail = () => {
         <div ref={rightColRef} className="space-y-4 sm:space-y-6">
           <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
-              <CardTitle className="text-lg">Deskripsi Masalah</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gray-500" aria-hidden />
+                Deskripsi Masalah
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
                 {ticket.description}
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className="transition-shadow duration-200 hover:shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gray-500" aria-hidden />
+                Hasil Pekerjaan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {canEdit && user?.role !== "admin" ? (
+                <>
+                  <textarea
+                    value={workResultDraft}
+                    onChange={(e) => {
+                      setWorkResultDraft(e.target.value);
+                      if (workResultSaveState !== "idle") {
+                        setWorkResultSaveState("idle");
+                      }
+                    }}
+                    onBlur={handleWorkResultBlur}
+                    rows="5"
+                    placeholder="Tuliskan hasil pekerjaan / tindakan yang sudah dilakukan..."
+                    className="flex min-h-[110px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Autosave saat Anda keluar dari field (klik di luar).
+                    </p>
+                    {workResultSaveState === "saving" && (
+                      <p className="text-xs text-blue-600" aria-live="polite">
+                        Menyimpan...
+                      </p>
+                    )}
+                    {workResultSaveState === "saved" && (
+                      <p className="text-xs text-green-600" aria-live="polite">
+                        Tersimpan
+                      </p>
+                    )}
+                    {workResultSaveState === "error" && (
+                      <p className="text-xs text-red-600" aria-live="polite">
+                        Gagal menyimpan
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                  {ticket.workResult?.trim() ? ticket.workResult : "-"}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -481,7 +565,10 @@ const TicketDetail = () => {
 
           <Card className="transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
-              <CardTitle className="text-lg">Bukti Perbaikan</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Upload className="w-5 h-5 text-gray-500" aria-hidden />
+                Bukti Perbaikan
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {ticket.proofPhotoUrl ? (

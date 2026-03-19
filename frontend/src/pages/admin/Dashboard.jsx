@@ -79,14 +79,25 @@ const Dashboard = () => {
     );
   }
 
-  const pieData = stats?.todayByCategory
-    ? [
-        { name: "SIMRS", value: stats.todayByCategory.SIMRS },
-        { name: "IPSRS", value: stats.todayByCategory.IPSRS },
-      ]
+  const pieData = Array.isArray(stats?.allTimeByProblemType)
+    ? stats.allTimeByProblemType.map((item) => ({
+        name: item.name,
+        value: Number(item.value) || 0,
+      }))
     : [];
 
-  const COLORS = ["#3B82F6", "#10B981"];
+  const COLORS = [
+    "#3B82F6",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#14B8A6",
+    "#F43F5E",
+    "#22C55E",
+    "#64748B",
+    "#0EA5E9",
+  ];
 
   return (
     <main
@@ -109,13 +120,15 @@ const Dashboard = () => {
         >
           <CardHeader>
             <CardTitle className="text-lg">
-              Masalah Hari Ini (SIMRS vs IPSRS)
+              Masalah Seluruh Waktu (Tipe Masalah)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div
               role="img"
-              aria-label={`Grafik pie: SIMRS dan IPSRS hari ini. ${pieData.map((d) => `${d.name} ${d.value} masalah`).join(", ")}`}
+              aria-label={`Grafik pie: Jumlah masalah berdasarkan tipe masalah sepanjang waktu. ${pieData
+                .map((d) => `${d.name} ${d.value} masalah`)
+                .join(", ")}`}
             >
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
