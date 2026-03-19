@@ -1,5 +1,5 @@
 const express = require("express");
-const { Op, fn, col } = require("sequelize");
+const { Op, fn, col, literal } = require("sequelize");
 const { body, validationResult } = require("express-validator");
 const {
   Ticket,
@@ -126,6 +126,19 @@ function parseLimit(queryLimit) {
   return PER_PAGE_OPTIONS.includes(n) ? n : 20;
 }
 
+function parseBooleanQuery(v) {
+  if (v == null) return false;
+  const s = String(v).toLowerCase().trim();
+  return s === "true" || s === "1" || s === "yes" || s === "on";
+}
+
+function parseNonNegativeNumberQuery(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
 async function getStatusTotals(where) {
   const statusGroups = await Ticket.findAll({
     where,
@@ -149,6 +162,9 @@ router.get("/", authenticate, logActivity, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseLimit(req.query.limit);
     const offset = (page - 1) * limit;
+    const noPagination = parseBooleanQuery(req.query.noPagination);
+    const responseTimeMin = parseNonNegativeNumberQuery(req.query.responseTimeMin);
+    const durationMin = parseNonNegativeNumberQuery(req.query.durationMin);
 
     const where = { isActive: true };
     const search = req.query.search;
@@ -191,6 +207,32 @@ router.get("/", authenticate, logActivity, async (req, res) => {
       ];
     }
 
+    // Time-threshold filters (minutes). Exclude null timestamps.
+    // We use SQL expressions to compute diff in minutes.
+    // Assumes PostgreSQL (repo already uses iLike & DATE_TRUNC elsewhere).
+    const andClauses = [];
+    if (responseTimeMin != null) {
+      andClauses.push(
+        literal(
+          `"Ticket"."pickedUpAt" IS NOT NULL AND (EXTRACT(EPOCH FROM ("Ticket"."pickedUpAt" - "Ticket"."createdAt")) / 60) > ${Number(
+            responseTimeMin,
+          )}`,
+        ),
+      );
+    }
+    if (durationMin != null) {
+      andClauses.push(
+        literal(
+          `"Ticket"."status" IN ('Selesai','Batal') AND "Ticket"."lastStatusChangeAt" IS NOT NULL AND (EXTRACT(EPOCH FROM ("Ticket"."lastStatusChangeAt" - "Ticket"."createdAt")) / 60) > ${Number(
+            durationMin,
+          )}`,
+        ),
+      );
+    }
+    if (andClauses.length > 0) {
+      where[Op.and] = [...(where[Op.and] || []), ...andClauses];
+    }
+
     const statusTotals = await getStatusTotals(where);
 
     // Prepare includes array
@@ -207,19 +249,23 @@ router.get("/", authenticate, logActivity, async (req, res) => {
       },
     ];
 
-    const { count, rows } = await Ticket.findAndCountAll({
+    const queryOptions = {
       where,
       include: includes,
       order: [["createdAt", "DESC"]],
-      limit,
-      offset,
-    });
+    };
+    if (!noPagination) {
+      queryOptions.limit = limit;
+      queryOptions.offset = offset;
+    }
+
+    const { count, rows } = await Ticket.findAndCountAll(queryOptions);
 
     res.json({
       tickets: rows,
       total: count,
-      page,
-      totalPages: Math.ceil(count / limit),
+      page: noPagination ? 1 : page,
+      totalPages: noPagination ? 1 : Math.ceil(count / limit),
       statusTotals,
     });
   } catch (error) {

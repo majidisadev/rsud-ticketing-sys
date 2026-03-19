@@ -1,38 +1,76 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import api, { getBaseUrl } from '../../config/api';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { StatusFilterSelect } from '../../components/StatusFilterSelect';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Badge } from '../../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Search, Plus, Edit2, Trash2, X, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import api, { getBaseUrl } from "../../config/api";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Select } from "../../components/ui/select";
+import { StatusFilterSelect } from "../../components/StatusFilterSelect";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+import { Badge } from "../../components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import {
+  Search,
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Download,
+  ClipboardList,
+  FileText,
+} from "lucide-react";
 
-const STORAGE_KEY_REPORT = 'myActivitiesReportFilters';
+const STORAGE_KEY_REPORT = "myActivitiesReportFilters";
 
 const getReportInitialState = () => {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY_REPORT);
     if (raw) {
       const data = JSON.parse(raw);
-      const defaults = { status: '', dateFrom: '', dateTo: '', search: '', problemTypeId: '' };
+      const defaults = {
+        status: "",
+        dateFrom: "",
+        dateTo: "",
+        search: "",
+        problemTypeId: "",
+      };
       return {
-        activeTab: data.activeTab === 'laporan' ? 'laporan' : 'aktivitas',
+        activeTab: data.activeTab === "laporan" ? "laporan" : "aktivitas",
         reportFilters: { ...defaults, ...data.reportFilters },
-        reportPage: typeof data.reportPage === 'number' ? data.reportPage : 1,
-        reportPerPage: [10, 20, 50, 100].includes(Number(data.reportPerPage)) ? Number(data.reportPerPage) : 20
+        reportPage: typeof data.reportPage === "number" ? data.reportPage : 1,
+        reportPerPage: [10, 20, 50, 100].includes(Number(data.reportPerPage))
+          ? Number(data.reportPerPage)
+          : 20,
       };
     }
   } catch (_) {}
   return {
-    activeTab: 'aktivitas',
-    reportFilters: { status: '', dateFrom: '', dateTo: '', search: '', problemTypeId: '' },
+    activeTab: "aktivitas",
+    reportFilters: {
+      status: "",
+      dateFrom: "",
+      dateTo: "",
+      search: "",
+      problemTypeId: "",
+    },
     reportPage: 1,
-    reportPerPage: 20
+    reportPerPage: 20,
   };
 };
 
@@ -41,22 +79,25 @@ const MyActivities = () => {
   const [activeTab, setActiveTab] = useState(reportState.activeTab);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState([]);
-  const [calendarDatesWithDiproses, setCalendarDatesWithDiproses] = useState([]);
-  const [calendarDatesOnlySelesaiBatal, setCalendarDatesOnlySelesaiBatal] = useState([]);
+  const [calendarDatesWithDiproses, setCalendarDatesWithDiproses] = useState(
+    [],
+  );
+  const [calendarDatesOnlySelesaiBatal, setCalendarDatesOnlySelesaiBatal] =
+    useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+  const [modalMode, setModalMode] = useState("create"); // 'create' or 'edit'
   const [editingActivity, setEditingActivity] = useState(null);
-  const [activityTitle, setActivityTitle] = useState('');
+  const [activityTitle, setActivityTitle] = useState("");
   const [problemTypes, setProblemTypes] = useState([]);
-  const [activityProblemTypeId, setActivityProblemTypeId] = useState('');
+  const [activityProblemTypeId, setActivityProblemTypeId] = useState("");
   const [activityDate, setActivityDate] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
-  
+
   // Report states
   const [reportData, setReportData] = useState([]);
   const [reportFilters, setReportFilters] = useState(reportState.reportFilters);
@@ -68,37 +109,37 @@ const MyActivities = () => {
   const formatDate = (date) => {
     const d = new Date(date);
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   };
 
   // Format date for display
   const formatDisplayDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+    return new Date(dateStr).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   };
 
   // Format time for display
   const formatTime = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatDateTime = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -107,12 +148,12 @@ const MyActivities = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        date: formatDate(selectedDate)
+        date: formatDate(selectedDate),
       });
       const res = await api.get(`/activities?${params}`);
       setActivities(res.data);
     } catch (error) {
-      console.error('Fetch activities error:', error);
+      console.error("Fetch activities error:", error);
     } finally {
       setLoading(false);
     }
@@ -124,11 +165,21 @@ const MyActivities = () => {
       const date = selectedDate;
       const params = new URLSearchParams({
         month: date.getMonth() + 1,
-        year: date.getFullYear()
+        year: date.getFullYear(),
       });
       const res = await api.get(`/activities/calendar-dates?${params}`);
       const data = res.data || {};
-      const norm = (arr) => (arr || []).map(d => (typeof d === 'string' ? d : (d && d.toISOString ? d.toISOString().slice(0, 10) : '')).slice(0, 10)).filter(Boolean);
+      const norm = (arr) =>
+        (arr || [])
+          .map((d) =>
+            (typeof d === "string"
+              ? d
+              : d && d.toISOString
+                ? d.toISOString().slice(0, 10)
+                : ""
+            ).slice(0, 10),
+          )
+          .filter(Boolean);
       if (Array.isArray(data)) {
         setCalendarDatesWithDiproses(norm(data));
         setCalendarDatesOnlySelesaiBatal([]);
@@ -137,7 +188,7 @@ const MyActivities = () => {
         setCalendarDatesOnlySelesaiBatal(norm(data.datesWithOnlySelesaiBatal));
       }
     } catch (error) {
-      console.error('Fetch calendar dates error:', error);
+      console.error("Fetch calendar dates error:", error);
     }
   }, [selectedDate]);
 
@@ -151,12 +202,12 @@ const MyActivities = () => {
       const res = await api.get(`/activities/report?${params}`);
       setReportData(res.data);
     } catch (error) {
-      console.error('Fetch report error:', error);
+      console.error("Fetch report error:", error);
     }
   }, [reportFilters]);
 
   useEffect(() => {
-    if (activeTab === 'aktivitas') {
+    if (activeTab === "aktivitas") {
       fetchActivities();
       fetchCalendarDates();
     } else {
@@ -167,36 +218,39 @@ const MyActivities = () => {
   useEffect(() => {
     const fetchProblemTypes = async () => {
       try {
-        const res = await api.get('/problem-types');
+        const res = await api.get("/problem-types");
         setProblemTypes(res.data || []);
       } catch (e) {
-        console.error('Fetch problem types error:', e);
+        console.error("Fetch problem types error:", e);
       }
     };
     fetchProblemTypes();
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY_REPORT, JSON.stringify({
-      activeTab,
-      reportFilters,
-      reportPage,
-      reportPerPage
-    }));
+    sessionStorage.setItem(
+      STORAGE_KEY_REPORT,
+      JSON.stringify({
+        activeTab,
+        reportFilters,
+        reportPage,
+        reportPerPage,
+      }),
+    );
   }, [activeTab, reportFilters, reportPage, reportPerPage]);
 
   // Reset report page when report data changes (e.g. after filter change)
   useEffect(() => {
-    if (activeTab === 'laporan') {
+    if (activeTab === "laporan") {
       setReportPage(1);
     }
   }, [reportData, activeTab]);
 
   // Group activities by status for Kanban
   const groupedActivities = {
-    diproses: activities.filter(a => a.status === 'diproses'),
-    selesai: activities.filter(a => a.status === 'selesai'),
-    batal: activities.filter(a => a.status === 'batal')
+    diproses: activities.filter((a) => a.status === "diproses"),
+    selesai: activities.filter((a) => a.status === "selesai"),
+    batal: activities.filter((a) => a.status === "batal"),
   };
 
   // Handle drag end (reorder within same column OR move to different column)
@@ -204,9 +258,13 @@ const MyActivities = () => {
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    )
+      return;
 
-    const activityId = parseInt(draggableId.replace('activity-', ''));
+    const activityId = parseInt(draggableId.replace("activity-", ""));
     const sameColumn = destination.droppableId === source.droppableId;
 
     if (sameColumn) {
@@ -218,9 +276,9 @@ const MyActivities = () => {
       reordered.splice(destination.index, 0, removed);
 
       const newActivities = [
-        ...(statusKey === 'diproses' ? reordered : groupedActivities.diproses),
-        ...(statusKey === 'selesai' ? reordered : groupedActivities.selesai),
-        ...(statusKey === 'batal' ? reordered : groupedActivities.batal)
+        ...(statusKey === "diproses" ? reordered : groupedActivities.diproses),
+        ...(statusKey === "selesai" ? reordered : groupedActivities.selesai),
+        ...(statusKey === "batal" ? reordered : groupedActivities.batal),
       ];
       setActivities(newActivities);
       return;
@@ -228,15 +286,17 @@ const MyActivities = () => {
 
     // Move to different column (change status) – call API
     const newStatus = destination.droppableId;
-    setActivities(prev => prev.map(a =>
-      a.id === activityId ? { ...a, status: newStatus } : a
-    ));
+    setActivities((prev) =>
+      prev.map((a) => (a.id === activityId ? { ...a, status: newStatus } : a)),
+    );
 
     try {
-      await api.patch(`/activities/${activityId}/status`, { status: newStatus });
+      await api.patch(`/activities/${activityId}/status`, {
+        status: newStatus,
+      });
       fetchActivities();
     } catch (error) {
-      console.error('Update status error:', error);
+      console.error("Update status error:", error);
       fetchActivities();
     }
   };
@@ -246,19 +306,19 @@ const MyActivities = () => {
     if (!activityTitle.trim()) return;
 
     try {
-      await api.post('/activities', {
+      await api.post("/activities", {
         title: activityTitle,
         currentDate: activityDate,
-        problemTypeId: activityProblemTypeId || null
+        problemTypeId: activityProblemTypeId || null,
       });
       setShowModal(false);
-      setActivityTitle('');
-      setActivityProblemTypeId('');
+      setActivityTitle("");
+      setActivityProblemTypeId("");
       fetchActivities();
       fetchCalendarDates();
     } catch (error) {
-      console.error('Create activity error:', error);
-      alert('Gagal membuat aktivitas');
+      console.error("Create activity error:", error);
+      alert("Gagal membuat aktivitas");
     }
   };
 
@@ -269,63 +329,73 @@ const MyActivities = () => {
     try {
       await api.put(`/activities/${editingActivity.id}`, {
         title: activityTitle,
-        problemTypeId: activityProblemTypeId || null
+        problemTypeId: activityProblemTypeId || null,
       });
       setShowModal(false);
-      setActivityTitle('');
-      setActivityProblemTypeId('');
+      setActivityTitle("");
+      setActivityProblemTypeId("");
       setEditingActivity(null);
       fetchActivities();
     } catch (error) {
-      console.error('Update activity error:', error);
-      alert('Gagal mengupdate aktivitas');
+      console.error("Update activity error:", error);
+      alert("Gagal mengupdate aktivitas");
     }
   };
 
   // Delete activity
   const handleDeleteActivity = async (id) => {
-    if (!window.confirm('Hapus aktivitas ini?')) return;
+    if (!window.confirm("Hapus aktivitas ini?")) return;
 
     try {
       await api.delete(`/activities/${id}`);
       fetchActivities();
       fetchCalendarDates();
     } catch (error) {
-      console.error('Delete activity error:', error);
-      alert('Gagal menghapus aktivitas');
+      console.error("Delete activity error:", error);
+      alert("Gagal menghapus aktivitas");
     }
   };
 
   // Open create modal (default tanggal hari ini)
   const openCreateModal = () => {
-    setModalMode('create');
-    setActivityTitle('');
+    setModalMode("create");
+    setActivityTitle("");
     setActivityDate(formatDate(new Date()));
     setEditingActivity(null);
-    setActivityProblemTypeId('');
+    setActivityProblemTypeId("");
     setShowModal(true);
   };
 
   // Open edit modal
   const openEditModal = (activity) => {
-    setModalMode('edit');
+    setModalMode("edit");
     setActivityTitle(activity.title);
     setEditingActivity(activity);
-    setActivityProblemTypeId(activity.problemType?.id ? String(activity.problemType.id) : '');
+    setActivityProblemTypeId(
+      activity.problemType?.id ? String(activity.problemType.id) : "",
+    );
     setShowModal(true);
   };
 
   // Dot kalender: kuning jika ada aktivitas diproses, abu-abu jika hanya selesai/batal
   const tileContent = ({ date, view }) => {
-    if (view === 'month') {
+    if (view === "month") {
       const dateStr = formatDate(date);
-      const hasDiproses = calendarDatesWithDiproses.some(cd => (cd && cd.slice(0, 10)) === dateStr);
-      const onlySelesaiBatal = calendarDatesOnlySelesaiBatal.some(cd => (cd && cd.slice(0, 10)) === dateStr);
+      const hasDiproses = calendarDatesWithDiproses.some(
+        (cd) => (cd && cd.slice(0, 10)) === dateStr,
+      );
+      const onlySelesaiBatal = calendarDatesOnlySelesaiBatal.some(
+        (cd) => (cd && cd.slice(0, 10)) === dateStr,
+      );
       if (hasDiproses) {
-        return <div className="w-2 h-2 bg-yellow-500 rounded-full mx-auto mt-1"></div>;
+        return (
+          <div className="w-2 h-2 bg-yellow-500 rounded-full mx-auto mt-1"></div>
+        );
       }
       if (onlySelesaiBatal) {
-        return <div className="w-2 h-2 bg-gray-400 rounded-full mx-auto mt-1"></div>;
+        return (
+          <div className="w-2 h-2 bg-gray-400 rounded-full mx-auto mt-1"></div>
+        );
       }
     }
     return null;
@@ -338,33 +408,36 @@ const MyActivities = () => {
 
   const getStatusVariant = (status) => {
     const variants = {
-      diproses: 'warning',
-      selesai: 'success',
-      batal: 'destructive',
-      Diproses: 'warning',
-      Selesai: 'success',
-      Batal: 'destructive',
-      Baru: 'default'
+      diproses: "warning",
+      selesai: "success",
+      batal: "destructive",
+      Diproses: "warning",
+      Selesai: "success",
+      Batal: "destructive",
+      Baru: "default",
     };
-    return variants[status] || 'secondary';
+    return variants[status] || "secondary";
   };
 
   const getStatusLabel = (status) => {
     const labels = {
-      diproses: 'Diproses',
-      selesai: 'Selesai',
-      batal: 'Batal'
+      diproses: "Diproses",
+      selesai: "Selesai",
+      batal: "Batal",
     };
     return labels[status] || status;
   };
 
   // Pagination for Laporan tab
   const reportTotalItems = reportData.length;
-  const reportTotalPages = Math.max(1, Math.ceil(reportTotalItems / reportPerPage));
+  const reportTotalPages = Math.max(
+    1,
+    Math.ceil(reportTotalItems / reportPerPage),
+  );
   const reportPageSafe = Math.min(Math.max(1, reportPage), reportTotalPages);
   const reportPaginatedData = reportData.slice(
     (reportPageSafe - 1) * reportPerPage,
-    reportPageSafe * reportPerPage
+    reportPageSafe * reportPerPage,
   );
 
   const handleReportPerPageChange = (value) => {
@@ -379,38 +452,51 @@ const MyActivities = () => {
       Object.entries(reportFilters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const baseUrl = getBaseUrl();
       const url = `${baseUrl}/api/activities/report/export/${type}?${params.toString()}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Export gagal' }));
-        throw new Error(errorData.message || 'Export gagal');
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Export gagal" }));
+        throw new Error(errorData.message || "Export gagal");
       }
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = downloadUrl;
-      a.download = `laporan-aktivitas.${type === 'excel' ? 'xlsx' : 'pdf'}`;
+      a.download = `laporan-aktivitas.${type === "excel" ? "xlsx" : "pdf"}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Export error:', error);
-      alert(error.message || 'Terjadi kesalahan saat export');
+      console.error("Export error:", error);
+      alert(error.message || "Terjadi kesalahan saat export");
     }
   };
 
   // Kanban column component
-  const KanbanColumn = ({ status, title, icon: Icon, activities, bgColor, borderColor }) => (
+  const KanbanColumn = ({
+    status,
+    title,
+    icon: Icon,
+    activities,
+    bgColor,
+    borderColor,
+  }) => (
     <div className={`flex-1 min-w-[280px] ${bgColor} rounded-lg p-3`}>
-      <div className={`flex items-center gap-2 mb-3 pb-2 border-b ${borderColor}`}>
+      <div
+        className={`flex items-center gap-2 mb-3 pb-2 border-b ${borderColor}`}
+      >
         <Icon className="w-5 h-5" />
         <h3 className="font-semibold">{title}</h3>
-        <Badge variant="secondary" className="ml-auto">{activities.length}</Badge>
+        <Badge variant="secondary" className="ml-auto">
+          {activities.length}
+        </Badge>
       </div>
       <Droppable droppableId={status}>
         {(provided, snapshot) => (
@@ -418,7 +504,7 @@ const MyActivities = () => {
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`min-h-[200px] space-y-2 transition-colors ${
-              snapshot.isDraggingOver ? 'bg-gray-100 rounded-lg' : ''
+              snapshot.isDraggingOver ? "bg-gray-100 rounded-lg" : ""
             }`}
           >
             {activities.map((activity, index) => (
@@ -433,11 +519,15 @@ const MyActivities = () => {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     className={`bg-white p-3 rounded-lg shadow-sm border ${
-                      snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-400' : ''
+                      snapshot.isDragging
+                        ? "shadow-lg ring-2 ring-blue-400"
+                        : ""
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2">
-                      <p className="font-medium text-sm flex-1">{activity.title}</p>
+                      <p className="font-medium text-sm flex-1">
+                        {activity.title}
+                      </p>
                       <div className="flex gap-1">
                         <button
                           onClick={() => openEditModal(activity)}
@@ -455,12 +545,21 @@ const MyActivities = () => {
                     </div>
                     <div className="mt-2 text-xs text-gray-600">
                       <span className="text-gray-500">Tipe masalah: </span>
-                      <span className="font-medium">{activity.problemType?.name || '-'}</span>
+                      <span className="font-medium">
+                        {activity.problemType?.name || "-"}
+                      </span>
                     </div>
                     {activity.endTime && (
                       <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        <span>Selesai: {formatTime(activity.endTime)}</span>
+                        {activity.status === "batal" ? (
+                          <XCircle className="w-3 h-3" />
+                        ) : (
+                          <CheckCircle className="w-3 h-3" />
+                        )}
+                        <span>
+                          {activity.status === "batal" ? "Batal" : "Selesai"}:{" "}
+                          {formatDateTime(activity.endTime)}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -477,37 +576,46 @@ const MyActivities = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Aktivitas Saya</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
+          Aktivitas Saya
+        </h1>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab('aktivitas')}
+            onClick={() => setActiveTab("aktivitas")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'aktivitas'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "aktivitas"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
-            Aktivitas
+            <span className="inline-flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Aktivitas
+            </span>
           </button>
           <button
-            onClick={() => setActiveTab('laporan')}
+            onClick={() => setActiveTab("laporan")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'laporan'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "laporan"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
-            Laporan
+            <span className="inline-flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Laporan
+            </span>
           </button>
         </nav>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'aktivitas' ? (
+      {activeTab === "aktivitas" ? (
         <div className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={openCreateModal}>
@@ -577,14 +685,17 @@ const MyActivities = () => {
           {/* Export buttons - filter mempengaruhi hasil export */}
           <div className="flex flex-wrap gap-2 justify-end">
             <Button
-              onClick={() => handleExportReport('excel')}
+              onClick={() => handleExportReport("excel")}
               variant="default"
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Excel
             </Button>
-            <Button onClick={() => handleExportReport('pdf')} variant="destructive">
+            <Button
+              onClick={() => handleExportReport("pdf")}
+              variant="destructive"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export PDF
             </Button>
@@ -603,19 +714,31 @@ const MyActivities = () => {
                     type="text"
                     placeholder="Cari judul/deskripsi..."
                     value={reportFilters.search}
-                    onChange={(e) => setReportFilters(prev => ({ ...prev, search: e.target.value }))}
+                    onChange={(e) =>
+                      setReportFilters((prev) => ({
+                        ...prev,
+                        search: e.target.value,
+                      }))
+                    }
                     className="pl-10"
                   />
                 </div>
                 <StatusFilterSelect
                   variant="activity"
                   value={reportFilters.status}
-                  onChange={(v) => setReportFilters(prev => ({ ...prev, status: v }))}
+                  onChange={(v) =>
+                    setReportFilters((prev) => ({ ...prev, status: v }))
+                  }
                   aria-label="Filter status laporan"
                 />
                 <Select
                   value={reportFilters.problemTypeId}
-                  onChange={(e) => setReportFilters(prev => ({ ...prev, problemTypeId: e.target.value }))}
+                  onChange={(e) =>
+                    setReportFilters((prev) => ({
+                      ...prev,
+                      problemTypeId: e.target.value,
+                    }))
+                  }
                   aria-label="Filter tipe masalah laporan"
                 >
                   <option value="">Semua Tipe Masalah</option>
@@ -628,13 +751,23 @@ const MyActivities = () => {
                 <Input
                   type="date"
                   value={reportFilters.dateFrom}
-                  onChange={(e) => setReportFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                  onChange={(e) =>
+                    setReportFilters((prev) => ({
+                      ...prev,
+                      dateFrom: e.target.value,
+                    }))
+                  }
                   placeholder="Dari Tanggal"
                 />
                 <Input
                   type="date"
                   value={reportFilters.dateTo}
-                  onChange={(e) => setReportFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                  onChange={(e) =>
+                    setReportFilters((prev) => ({
+                      ...prev,
+                      dateTo: e.target.value,
+                    }))
+                  }
                   placeholder="Sampai Tanggal"
                 />
               </div>
@@ -651,14 +784,18 @@ const MyActivities = () => {
                 className="w-20"
               >
                 {REPORT_PER_PAGE_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n}</option>
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
                 ))}
               </Select>
               <span className="text-sm text-gray-600">per halaman</span>
             </div>
             {reportTotalItems > 0 && (
               <div className="text-sm text-gray-600">
-                Menampilkan {(reportPageSafe - 1) * reportPerPage + 1}–{Math.min(reportPageSafe * reportPerPage, reportTotalItems)} dari {reportTotalItems} data
+                Menampilkan {(reportPageSafe - 1) * reportPerPage + 1}–
+                {Math.min(reportPageSafe * reportPerPage, reportTotalItems)}{" "}
+                dari {reportTotalItems} data
               </div>
             )}
           </div>
@@ -680,7 +817,10 @@ const MyActivities = () => {
                 <TableBody>
                   {reportPaginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan="7" className="text-center py-8 text-gray-500">
+                      <TableCell
+                        colSpan="7"
+                        className="text-center py-8 text-gray-500"
+                      >
                         Tidak ada data
                       </TableCell>
                     </TableRow>
@@ -688,8 +828,12 @@ const MyActivities = () => {
                     reportPaginatedData.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          <Badge variant={item.type === 'activity' ? 'outline' : 'secondary'}>
-                            {item.type === 'activity' ? 'Aktivitas' : 'Tugas'}
+                          <Badge
+                            variant={
+                              item.type === "activity" ? "outline" : "secondary"
+                            }
+                          >
+                            {item.type === "activity" ? "Aktivitas" : "Tugas"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -699,19 +843,23 @@ const MyActivities = () => {
                           {formatDateTime(item.completedAt || item.endTime)}
                         </TableCell>
                         <TableCell className="tabular-nums">
-                          {item.durationMinutes != null ? `${item.durationMinutes} menit` : '-'}
+                          {item.durationMinutes != null
+                            ? `${item.durationMinutes} menit`
+                            : "-"}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-md">
                             <p className="truncate">{item.title}</p>
-                            {item.type === 'ticket' && item.ticketNumber && (
-                              <p className="text-xs text-gray-500">{item.ticketNumber}</p>
+                            {item.type === "ticket" && item.ticketNumber && (
+                              <p className="text-xs text-gray-500">
+                                {item.ticketNumber}
+                              </p>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="truncate inline-block max-w-[180px]">
-                            {item.problemTypeName || '-'}
+                            {item.problemTypeName || "-"}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -758,7 +906,7 @@ const MyActivities = () => {
                           <span className="px-2 text-gray-400">…</span>
                         )}
                         <Button
-                          variant={reportPageSafe === p ? 'default' : 'outline'}
+                          variant={reportPageSafe === p ? "default" : "outline"}
                           size="sm"
                           className="min-w-[2.25rem]"
                           onClick={() => setReportPage(p)}
@@ -771,7 +919,9 @@ const MyActivities = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setReportPage((p) => Math.min(reportTotalPages, p + 1))}
+                  onClick={() =>
+                    setReportPage((p) => Math.min(reportTotalPages, p + 1))
+                  }
                   disabled={reportPageSafe >= reportTotalPages}
                 >
                   Selanjutnya
@@ -786,20 +936,30 @@ const MyActivities = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowModal(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowModal(false)}
+            ></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
+              &#8203;
+            </span>
             <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    {modalMode === 'create' ? 'Tambah Aktivitas' : 'Edit Aktivitas'}
+                    {modalMode === "create"
+                      ? "Tambah Aktivitas"
+                      : "Edit Aktivitas"}
                   </h3>
-                  <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {modalMode === 'create' && (
+                  {modalMode === "create" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Tanggal
@@ -845,10 +1005,14 @@ const MyActivities = () => {
               </div>
               <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
                 <Button
-                  onClick={modalMode === 'create' ? handleCreateActivity : handleUpdateActivity}
+                  onClick={
+                    modalMode === "create"
+                      ? handleCreateActivity
+                      : handleUpdateActivity
+                  }
                   disabled={!activityTitle.trim()}
                 >
-                  {modalMode === 'create' ? 'Tambah' : 'Simpan'}
+                  {modalMode === "create" ? "Tambah" : "Simpan"}
                 </Button>
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Batal
