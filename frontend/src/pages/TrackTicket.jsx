@@ -29,6 +29,7 @@ import {
   Home,
 } from "lucide-react";
 import html2canvas from "html2canvas";
+import { toast } from "../hooks/use-toast";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -124,11 +125,19 @@ const TrackTicket = () => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         } else {
-          alert("Gagal menyalin. Salin manual: " + ticket.ticketNumber);
+          toast({
+            title: "Gagal menyalin",
+            description: "Salin manual: " + ticket.ticketNumber,
+            variant: "destructive",
+          });
         }
       }
     } catch (err) {
-      alert("Gagal menyalin. Salin manual: " + ticket.ticketNumber);
+      toast({
+        title: "Gagal menyalin",
+        description: "Salin manual: " + ticket.ticketNumber,
+        variant: "destructive",
+      });
     }
   };
 
@@ -159,7 +168,10 @@ const TrackTicket = () => {
       const whatsappButton = document.querySelector("[data-whatsapp-button]");
       if (saveButton) saveButton.style.display = "";
       if (whatsappButton) whatsappButton.style.display = "";
-      alert("Gagal menyimpan gambar");
+      toast({
+        title: "Gagal menyimpan gambar",
+        variant: "destructive",
+      });
     }
   };
 
@@ -200,14 +212,20 @@ const TrackTicket = () => {
 
   const handleSendToWhatsApp = async () => {
     if (!selectedTechnician) {
-      alert("Pilih teknisi terlebih dahulu");
+      toast({
+        title: "Pilih teknisi terlebih dahulu",
+        variant: "destructive",
+      });
       return;
     }
     const technician = technicians.find(
       (t) => t.id === parseInt(selectedTechnician),
     );
     if (!technician?.phoneNumber) {
-      alert("Teknisi tidak memiliki nomor WhatsApp");
+      toast({
+        title: "Teknisi tidak memiliki nomor WhatsApp",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -216,7 +234,10 @@ const TrackTicket = () => {
       const imageDataUrl = await generateTicketImage();
       const formattedPhone = formatPhoneNumber(technician.phoneNumber);
       if (!formattedPhone) {
-        alert("Nomor telepon tidak valid");
+        toast({
+          title: "Nomor telepon tidak valid",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -244,7 +265,10 @@ const TrackTicket = () => {
       setShowWhatsAppModal(false);
       setSelectedTechnician("");
     } catch (err) {
-      alert("Gagal mengirim ke WhatsApp");
+      toast({
+        title: "Gagal mengirim ke WhatsApp",
+        variant: "destructive",
+      });
     } finally {
       setGeneratingImage(false);
     }

@@ -34,6 +34,8 @@ import {
   useAdminPageAnimation,
   useStaggerListAnimation,
 } from "../../hooks/useAdminPageAnimation";
+import { toast } from "../../hooks/use-toast";
+import { useConfirm } from "../../context/ConfirmContext";
 
 const STORAGE_KEY = "allTicketsFilters";
 
@@ -114,6 +116,7 @@ const AllTicketsAdmin = () => {
   const [filters, setFilters] = useState(initialState.filters);
   const [timeFilters, setTimeFilters] = useState(initialState.timeFilters);
   const [problemTypes, setProblemTypes] = useState([]);
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchTickets();
@@ -209,13 +212,23 @@ const AllTicketsAdmin = () => {
   );
 
   const handleDelete = async (id) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus tiket ini?")) {
-      try {
-        await api.delete(`/tickets/${id}`);
-        fetchTickets();
-      } catch (error) {
-        alert(error.response?.data?.message || "Terjadi kesalahan");
-      }
+    const ok = await confirm({
+      title: "Hapus tiket?",
+      description:
+        "Apakah Anda yakin ingin menghapus tiket ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Hapus",
+      cancelText: "Batal",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/tickets/${id}`);
+      fetchTickets();
+    } catch (error) {
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 
@@ -254,7 +267,10 @@ const AllTicketsAdmin = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Export error:", error);
-      alert(error.message || "Terjadi kesalahan saat export");
+      toast({
+        title: error.message || "Terjadi kesalahan saat export",
+        variant: "destructive",
+      });
     }
   };
 

@@ -6,8 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Select } from '../../components/ui/select';
-import { Search, Calendar, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
+import { Search, Calendar, Clock, CheckCircle, XCircle, Download, ImageIcon } from 'lucide-react';
+import ImageLightbox from '../../components/ImageLightbox';
 import { useAdminPageAnimation, useStaggerListAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
+import { toast } from '../../hooks/use-toast';
 
 const STORAGE_KEY = 'allActivitiesFilters';
 
@@ -48,6 +50,7 @@ const AllActivities = () => {
   const [perPage, setPerPage] = useState(initialState.perPage);
   const PER_PAGE_OPTIONS = [10, 20, 50, 100];
   const [problemTypes, setProblemTypes] = useState([]);
+  const [proofLightboxSrc, setProofLightboxSrc] = useState(null);
 
   const fetchActivities = useCallback(async () => {
     try {
@@ -113,6 +116,24 @@ const AllActivities = () => {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  const resolveProofImageUrl = (proofPhotoUrl) => {
+    if (!proofPhotoUrl || typeof proofPhotoUrl !== 'string') return null;
+    if (proofPhotoUrl.startsWith('http')) return proofPhotoUrl;
+    return `${getBaseUrl()}${proofPhotoUrl}`;
+  };
+
+  const handleViewProof = (item) => {
+    const src = resolveProofImageUrl(item.proofPhotoUrl);
+    if (!src) {
+      toast({
+        title: 'Tidak ada bukti gambar',
+        description: 'Belum ada foto bukti untuk entri ini.',
+      });
+      return;
+    }
+    setProofLightboxSrc(src);
+  };
+
   const handleExport = async (type) => {
     try {
       const params = new URLSearchParams();
@@ -140,7 +161,10 @@ const AllActivities = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Export error:', error);
-      alert(error.message || 'Terjadi kesalahan saat export');
+      toast({
+        title: error.message || 'Terjadi kesalahan saat export',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -364,12 +388,13 @@ const AllActivities = () => {
                 <TableHead scope="col">Tipe Masalah</TableHead>
                 <TableHead scope="col">Judul Aktivitas / Deskripsi Masalah</TableHead>
                 <TableHead scope="col">Status</TableHead>
+                <TableHead scope="col" className="w-[88px] text-center">Bukti</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="8" className="text-center py-10 text-gray-500">
+                  <TableCell colSpan="9" className="text-center py-10 text-gray-500">
                     Tidak ada data
                   </TableCell>
                 </TableRow>
@@ -409,7 +434,7 @@ const AllActivities = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-md">
+                      <div className="max-w-sm">
                         <p className="truncate">{item.title}</p>
                         {item.type === 'ticket' && item.ticketNumber && (
                           <p className="text-xs text-gray-500">{item.ticketNumber}</p>
@@ -421,6 +446,19 @@ const AllActivities = () => {
                         {getStatusIcon(item.status)}
                         {getStatusLabel(item.status)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-gray-600 hover:text-blue-600"
+                        aria-label="Lihat bukti gambar"
+                        title="Lihat bukti"
+                        onClick={() => handleViewProof(item)}
+                      >
+                        <ImageIcon className="h-5 w-5" aria-hidden />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -486,6 +524,12 @@ const AllActivities = () => {
           </div>
         </nav>
       )}
+
+      <ImageLightbox
+        src={proofLightboxSrc}
+        alt="Bukti gambar"
+        onClose={() => setProofLightboxSrc(null)}
+      />
     </main>
   );
 };

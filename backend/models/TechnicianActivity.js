@@ -43,6 +43,10 @@ const TechnicianActivity = sequelize.define('TechnicianActivity', {
   currentDate: {
     type: DataTypes.DATEONLY,
     allowNull: false
+  },
+  proofPhotoUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'technician_activities',

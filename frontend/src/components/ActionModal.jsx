@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Select } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { X } from 'lucide-react';
+import { toast } from '../hooks/use-toast';
 
 const ActionModal = ({ ticket, onClose, onUpdate }) => {
   const { user } = useAuth();
@@ -49,7 +50,10 @@ const ActionModal = ({ ticket, onClose, onUpdate }) => {
       fetchTicketData();
       if (onUpdate) onUpdate();
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      toast({
+        title: error.response?.data?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

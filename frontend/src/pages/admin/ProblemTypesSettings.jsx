@@ -11,6 +11,7 @@ import {
 } from "../../components/ui/card";
 import { Pencil, Trash2, Plus, X, Check } from "lucide-react";
 import { useAdminPageAnimation } from "../../hooks/useAdminPageAnimation";
+import { toast } from "../../hooks/use-toast";
 
 const ProblemTypesSettings = () => {
   const containerRef = useRef(null);
@@ -72,7 +73,10 @@ const ProblemTypesSettings = () => {
       setEditingId(null);
       setFormData({ name: "" });
     } catch (error) {
-      alert(error.response?.data?.message || "Gagal menyimpan");
+      toast({
+        title: error.response?.data?.message || "Gagal menyimpan",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -81,7 +85,10 @@ const ProblemTypesSettings = () => {
   const handleCreate = async (e) => {
     e?.preventDefault();
     if (!formData.name.trim()) {
-      alert("Nama tipe masalah wajib diisi");
+      toast({
+        title: "Nama tipe masalah wajib diisi",
+        variant: "destructive",
+      });
       return;
     }
     setSaving(true);
@@ -91,7 +98,10 @@ const ProblemTypesSettings = () => {
       setShowAddForm(false);
       setFormData({ name: "" });
     } catch (error) {
-      alert(error.response?.data?.message || "Gagal menambah");
+      toast({
+        title: error.response?.data?.message || "Gagal menambah",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -109,9 +119,12 @@ const ProblemTypesSettings = () => {
       const msg = "Tipe masalah dihapus.";
       await fetchProblemTypes();
       setDeleteConfirmId(null);
-      alert(msg);
+      toast({ title: msg, variant: "success" });
     } catch (error) {
-      alert(error.response?.data?.message || "Gagal menghapus");
+      toast({
+        title: error.response?.data?.message || "Gagal menghapus",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }

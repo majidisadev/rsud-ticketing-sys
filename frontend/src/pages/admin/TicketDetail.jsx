@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { ArrowLeft, Calendar, User, Phone, Building, Tag, Pencil, Check, X } from 'lucide-react';
+import ImageLightbox from '../../components/ImageLightbox';
 import { useAdminPageAnimation } from '../../hooks/useAdminPageAnimation';
+import { toast } from '../../hooks/use-toast';
 
 const toDatetimeLocal = (dateStr) => {
   if (!dateStr) return '';
@@ -28,6 +30,7 @@ const AdminTicketDetail = () => {
   const [editingTimes, setEditingTimes] = useState(false);
   const [timeForm, setTimeForm] = useState({ createdAt: '', pickedUpAt: '', lastStatusChangeAt: '' });
   const [savingTimes, setSavingTimes] = useState(false);
+  const [proofLightboxSrc, setProofLightboxSrc] = useState(null);
 
   useEffect(() => {
     fetchTicket();
@@ -80,7 +83,10 @@ const AdminTicketDetail = () => {
       setEditingTimes(false);
     } catch (error) {
       console.error('Save times error:', error);
-      alert(error.response?.data?.message || 'Gagal menyimpan');
+      toast({
+        title: error.response?.data?.message || 'Gagal menyimpan',
+        variant: 'destructive',
+      });
     } finally {
       setSavingTimes(false);
     }
@@ -317,15 +323,27 @@ const AdminTicketDetail = () => {
             </CardHeader>
             <CardContent>
               {ticket.proofPhotoUrl ? (
-                <img
-                  src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Bukti foto perbaikan"
-                  className="w-full h-auto rounded-lg border border-gray-200"
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.png';
-                    console.error('Image load error:', ticket.proofPhotoUrl);
-                  }}
-                />
+                <button
+                  type="button"
+                  title="Klik untuk pratinjau"
+                  className="w-full p-0 border-0 bg-transparent rounded-lg cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  onClick={() =>
+                    setProofLightboxSrc(
+                      `${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`,
+                    )
+                  }
+                  aria-label="Buka pratinjau bukti gambar"
+                >
+                  <img
+                    src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
+                    alt="Bukti foto perbaikan"
+                    className="w-full h-auto rounded-lg border border-gray-200 pointer-events-none"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.png';
+                      console.error('Image load error:', ticket.proofPhotoUrl);
+                    }}
+                  />
+                </button>
               ) : (
                 <p className="text-gray-500">Belum ada bukti perbaikan</p>
               )}
@@ -380,6 +398,12 @@ const AdminTicketDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      <ImageLightbox
+        src={proofLightboxSrc}
+        alt="Foto bukti perbaikan"
+        onClose={() => setProofLightboxSrc(null)}
+      />
     </main>
   );
 };

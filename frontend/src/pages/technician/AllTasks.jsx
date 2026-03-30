@@ -24,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import { toast } from "../../hooks/use-toast";
 import { Label } from "../../components/ui/label";
 import {
   Search,
@@ -158,9 +159,12 @@ const TechnicianAllTasks = () => {
     try {
       await api.post(`/tickets/${ticketId}/take`);
       fetchTickets();
-      alert("Tiket berhasil diambil");
+      toast({ title: "Tiket berhasil diambil", variant: "success" });
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 

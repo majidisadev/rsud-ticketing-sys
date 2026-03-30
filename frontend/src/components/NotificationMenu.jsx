@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Bell, CheckCheck, ExternalLink, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
+import { useConfirm } from '../context/ConfirmContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 
@@ -12,6 +13,7 @@ const NotificationMenu = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteAllNotifications } = useNotifications();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
@@ -39,7 +41,13 @@ const NotificationMenu = () => {
   };
 
   const handleDeleteAll = async () => {
-    const ok = window.confirm('Hapus semua notifikasi?');
+    const ok = await confirm({
+      title: 'Hapus semua notifikasi?',
+      description: 'Semua notifikasi akan dihapus dari daftar Anda.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      variant: 'destructive',
+    });
     if (!ok) return;
     await deleteAllNotifications();
   };

@@ -57,6 +57,11 @@ const Layout = ({ children }) => {
       label: "Aktivitas Saya",
       icon: CalendarDays,
     },
+    {
+      path: "/technician/allreport",
+      label: "Laporan",
+      icon: BarChart3,
+    },
   ];
 
   const menu = isAdmin ? adminMenu : technicianMenu;

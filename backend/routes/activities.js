@@ -1,6 +1,9 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const { Op } = require("sequelize");
 const { body, validationResult } = require("express-validator");
+const upload = require("../utils/fileUpload");
 const {
   TechnicianActivity,
   User,
@@ -19,6 +22,15 @@ const {
 } = require("../utils/pdfHelpers");
 
 const router = express.Router();
+
+function unlinkProofFile(proofPhotoUrl) {
+  if (!proofPhotoUrl || typeof proofPhotoUrl !== "string") return;
+  if (!proofPhotoUrl.startsWith("/uploads/")) return;
+  const safeName = path.basename(proofPhotoUrl);
+  if (!safeName || safeName.includes("..")) return;
+  const filePath = path.join(__dirname, "../uploads", safeName);
+  fs.unlink(filePath, () => {});
+}
 
 // Shared: build report data for technician (activities + my tasks) with filters
 async function getReportDataForTechnician(userId, filters) {
@@ -345,6 +357,7 @@ router.get(
             startTime: a.startTime,
             endTime: a.endTime,
             problemTypeName: a.problemType?.name || "-",
+            proofPhotoUrl: a.proofPhotoUrl || null,
           };
         }),
         ...tickets.map((t) => {
@@ -375,6 +388,7 @@ router.get(
                 : t.status.toLowerCase(),
             ticketNumber: t.ticketNumber,
             problemTypeName: t.problemType?.name || "-",
+            proofPhotoUrl: t.proofPhotoUrl || null,
           };
         }),
       ];
@@ -693,6 +707,7 @@ async function getCombinedDataForAdmin(filters) {
       technicianDisplay: a.technician ? a.technician.fullName : "-",
       ticketNumber: null,
       problemTypeName: a.problemType?.name || "-",
+      proofPhotoUrl: a.proofPhotoUrl || null,
     };
   });
 
@@ -729,6 +744,7 @@ async function getCombinedDataForAdmin(filters) {
       technicianDisplay,
       ticketNumber: t.ticketNumber,
       problemTypeName: t.problemType?.name || "-",
+      proofPhotoUrl: t.proofPhotoUrl || null,
     };
   });
 
@@ -1035,6 +1051,7 @@ router.post(
   "/",
   authenticate,
   authorize("teknisi_simrs", "teknisi_ipsrs"),
+  upload.single("photo"),
   [
     body("title").notEmpty().withMessage("Judul aktivitas required"),
     body("currentDate")
@@ -1071,6 +1088,8 @@ router.post(
             .json({ message: "Tipe masalah tidak ditemukan" });
       }
 
+      const proofPhotoUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
       const activity = await TechnicianActivity.create({
         userId: req.user.id,
         title: req.body.title,
@@ -1078,6 +1097,7 @@ router.post(
         status: "diproses",
         startTime: new Date(),
         currentDate,
+        proofPhotoUrl,
       });
 
       const created = await TechnicianActivity.findByPk(activity.id, {
@@ -1102,6 +1122,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("teknisi_simrs", "teknisi_ipsrs"),
+  upload.single("photo"),
   [
     body("title").optional().notEmpty().withMessage("Judul tidak boleh kosong"),
     body("status")
@@ -1134,6 +1155,11 @@ router.put(
       // Check ownership
       if (activity.userId !== req.user.id) {
         return res.status(403).json({ message: "Akses ditolak" });
+      }
+
+      if (req.file) {
+        unlinkProofFile(activity.proofPhotoUrl);
+        activity.proofPhotoUrl = `/uploads/${req.file.filename}`;
       }
 
       // Update fields
@@ -1246,6 +1272,44 @@ router.patch(
   },
 );
 
+// Delete proof photo only
+router.delete(
+  "/:id/proof",
+  authenticate,
+  authorize("teknisi_simrs", "teknisi_ipsrs"),
+  async (req, res) => {
+    try {
+      const activity = await TechnicianActivity.findByPk(req.params.id);
+
+      if (!activity) {
+        return res.status(404).json({ message: "Aktivitas tidak ditemukan" });
+      }
+
+      if (activity.userId !== req.user.id) {
+        return res.status(403).json({ message: "Akses ditolak" });
+      }
+
+      unlinkProofFile(activity.proofPhotoUrl);
+      activity.proofPhotoUrl = null;
+      await activity.save();
+
+      const updated = await TechnicianActivity.findByPk(activity.id, {
+        include: [
+          {
+            model: ProblemType,
+            as: "problemType",
+            attributes: ["id", "name", "slug"],
+          },
+        ],
+      });
+      res.json(updated || activity);
+    } catch (error) {
+      console.error("Delete activity proof error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+);
+
 // Delete activity
 router.delete(
   "/:id",
@@ -1264,6 +1328,7 @@ router.delete(
         return res.status(403).json({ message: "Akses ditolak" });
       }
 
+      unlinkProofFile(activity.proofPhotoUrl);
       await activity.destroy();
 
       res.json({ message: "Aktivitas berhasil dihapus" });

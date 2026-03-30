@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { UserPlus, Edit, Power, X, CheckCircle, XCircle } from 'lucide-react';
 import { useAdminPageAnimation, useStaggerListAnimation, prefersReducedMotion } from '../../hooks/useAdminPageAnimation';
 import { set, animate } from 'animejs';
+import { toast } from '../../hooks/use-toast';
 
 const UserManagement = () => {
   const containerRef = useRef(null);
@@ -92,7 +93,10 @@ const UserManagement = () => {
       });
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      toast({
+        title: error.response?.data?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -114,7 +118,10 @@ const UserManagement = () => {
       await api.put(`/users/${user.id}`, { isActive: !user.isActive });
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan');
+      toast({
+        title: error.response?.data?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -123,10 +130,16 @@ const UserManagement = () => {
     try {
       await api.put('/settings/ipsrs_enabled', { value: !ipsrsEnabled });
       setIpsrsEnabled(!ipsrsEnabled);
-      alert(`IPSRS telah ${!ipsrsEnabled ? 'diaktifkan' : 'dinonaktifkan'}`);
+      toast({
+        title: `IPSRS telah ${!ipsrsEnabled ? 'diaktifkan' : 'dinonaktifkan'}`,
+        variant: 'success',
+      });
     } catch (error) {
       console.error('Toggle IPSRS error:', error);
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat mengubah status IPSRS');
+      toast({
+        title: error.response?.data?.message || 'Terjadi kesalahan saat mengubah status IPSRS',
+        variant: 'destructive',
+      });
     } finally {
       setTogglingIpsrs(false);
     }

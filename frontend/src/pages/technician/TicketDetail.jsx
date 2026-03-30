@@ -4,6 +4,7 @@ import { createTimeline, set } from "animejs";
 import api, { getBaseUrl } from "../../config/api";
 import { useAuth } from "../../context/AuthContext";
 import ActionModal from "../../components/ActionModal";
+import ImageLightbox from "../../components/ImageLightbox";
 import {
   useAdminPageAnimation,
   prefersReducedMotion,
@@ -19,6 +20,8 @@ import {
 import { Label } from "../../components/ui/label";
 import { Select } from "../../components/ui/select";
 import { StatusFilterSelect } from "../../components/StatusFilterSelect";
+import { toast } from "../../hooks/use-toast";
+import { useConfirm } from "../../context/ConfirmContext";
 import {
   ArrowLeft,
   Upload,
@@ -30,12 +33,14 @@ import {
   FileText,
   Image,
   Printer,
+  Trash2,
 } from "lucide-react";
 
 const TicketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [technicians, setTechnicians] = useState([]);
@@ -46,6 +51,7 @@ const TicketDetail = () => {
   const [workResultDraft, setWorkResultDraft] = useState("");
   const [workResultSaveState, setWorkResultSaveState] = useState("idle"); // idle | saving | saved | error
   const [printFormLoading, setPrintFormLoading] = useState(false);
+  const [proofLightboxSrc, setProofLightboxSrc] = useState(null);
 
   const containerRef = useRef(null);
   const leftColRef = useRef(null);
@@ -110,7 +116,10 @@ const TicketDetail = () => {
       await api.patch(`/tickets/${id}/status`, { status });
       fetchTicket();
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 
@@ -121,7 +130,10 @@ const TicketDetail = () => {
       });
       fetchTicket();
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 
@@ -134,9 +146,12 @@ const TicketDetail = () => {
       setShowCoAssignModal(false);
       setSelectedTechnician("");
       fetchTicket();
-      alert("Co-assignment berhasil");
+      toast({ title: "Co-assignment berhasil", variant: "success" });
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 
@@ -144,7 +159,10 @@ const TicketDetail = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 25 * 1024 * 1024) {
-      alert("Ukuran file maksimal 25MB");
+      toast({
+        title: "Ukuran file maksimal 25MB",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -156,9 +174,37 @@ const TicketDetail = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       fetchTicket();
-      alert("Bukti perbaikan berhasil diupload");
+      toast({
+        title: "Bukti perbaikan berhasil diupload",
+        variant: "success",
+      });
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProof = async () => {
+    const ok = await confirm({
+      title: "Hapus bukti gambar?",
+      description:
+        "Foto bukti perbaikan akan dihapus permanen. Anda dapat mengunggah bukti baru setelahnya.",
+      confirmText: "Hapus",
+      cancelText: "Batal",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/tickets/${id}/proof`);
+      await fetchTicket();
+      toast({ title: "Bukti perbaikan dihapus", variant: "success" });
+    } catch (error) {
+      toast({
+        title: error.response?.data?.message || "Gagal menghapus bukti gambar",
+        variant: "destructive",
+      });
     }
   };
 
@@ -166,9 +212,12 @@ const TicketDetail = () => {
     try {
       await api.post(`/tickets/${id}/take`);
       fetchTicket();
-      alert("Tiket berhasil diambil");
+      toast({ title: "Tiket berhasil diambil", variant: "success" });
     } catch (error) {
-      alert(error.response?.data?.message || "Terjadi kesalahan");
+      toast({
+        title: error.response?.data?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      });
     }
   };
 
@@ -198,7 +247,7 @@ const TicketDetail = () => {
       } else if (error.message) {
         msg = error.message;
       }
-      alert(msg);
+      toast({ title: msg, variant: "destructive" });
     } finally {
       setPrintFormLoading(false);
     }
@@ -617,40 +666,68 @@ const TicketDetail = () => {
             </CardHeader>
             <CardContent>
               {ticket.proofPhotoUrl ? (
-                <img
-                  src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
-                  alt="Foto bukti perbaikan yang diupload"
-                  className="w-full h-auto rounded-lg border border-gray-200 mb-2"
-                  onError={(e) => {
-                    e.target.src = "/placeholder-image.png";
-                    console.error("Image load error:", ticket.proofPhotoUrl);
-                  }}
-                />
+                <>
+                  <button
+                    type="button"
+                    title="Klik untuk pratinjau"
+                    className="w-full p-0 border-0 bg-transparent rounded-lg cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 mb-2"
+                    onClick={() =>
+                      setProofLightboxSrc(
+                        `${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`,
+                      )
+                    }
+                    aria-label="Buka pratinjau bukti gambar"
+                  >
+                    <img
+                      src={`${getBaseUrl()}${ticket.proofPhotoUrl}?t=${ticket.updatedAt || Date.now()}`}
+                      alt="Foto bukti perbaikan yang diupload"
+                      className="w-full h-auto rounded-lg border border-gray-200 pointer-events-none"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-image.png";
+                        console.error("Image load error:", ticket.proofPhotoUrl);
+                      }}
+                    />
+                  </button>
+                  {canEdit && user?.role !== "admin" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mb-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      onClick={handleDeleteProof}
+                      aria-label="Hapus bukti gambar perbaikan"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" aria-hidden />
+                      Hapus Bukti Gambar
+                    </Button>
+                  )}
+                </>
               ) : (
                 <p className="text-gray-500 mb-2">Belum ada bukti perbaikan</p>
               )}
-              {canEdit && user?.role !== "admin" && (
-                <div>
-                  <input
-                    id="proof-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProofUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() =>
-                      document.getElementById("proof-upload")?.click()
-                    }
-                    aria-label="Pilih file untuk upload bukti perbaikan"
-                  >
-                    <Upload className="w-4 h-4 mr-2" aria-hidden />
-                    Upload Bukti
-                  </Button>
-                </div>
-              )}
+              {canEdit &&
+                user?.role !== "admin" &&
+                !ticket.proofPhotoUrl && (
+                  <div>
+                    <input
+                      id="proof-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProofUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() =>
+                        document.getElementById("proof-upload")?.click()
+                      }
+                      aria-label="Pilih file untuk upload bukti perbaikan"
+                    >
+                      <Upload className="w-4 h-4 mr-2" aria-hidden />
+                      Upload Bukti
+                    </Button>
+                  </div>
+                )}
             </CardContent>
           </Card>
 
@@ -751,6 +828,12 @@ const TicketDetail = () => {
       )}
 
       {/* Co-Assign Modal */}
+      <ImageLightbox
+        src={proofLightboxSrc}
+        alt="Foto bukti perbaikan"
+        onClose={() => setProofLightboxSrc(null)}
+      />
+
       {showCoAssignModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -6,24 +7,11 @@ import api, { getBaseUrl } from "../../config/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
-import { StatusFilterSelect } from "../../components/StatusFilterSelect";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
 import { Badge } from "../../components/ui/badge";
+import { toast } from "../../hooks/use-toast";
+import { useConfirm } from "../../context/ConfirmContext";
+import { Card, CardContent } from "../../components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import {
-  Search,
   Plus,
   Edit2,
   Trash2,
@@ -31,52 +19,12 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Download,
   ClipboardList,
-  FileText,
+  ImageIcon,
 } from "lucide-react";
 
-const STORAGE_KEY_REPORT = "myActivitiesReportFilters";
-
-const getReportInitialState = () => {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_REPORT);
-    if (raw) {
-      const data = JSON.parse(raw);
-      const defaults = {
-        status: "",
-        dateFrom: "",
-        dateTo: "",
-        search: "",
-        problemTypeId: "",
-      };
-      return {
-        activeTab: data.activeTab === "laporan" ? "laporan" : "aktivitas",
-        reportFilters: { ...defaults, ...data.reportFilters },
-        reportPage: typeof data.reportPage === "number" ? data.reportPage : 1,
-        reportPerPage: [10, 20, 50, 100].includes(Number(data.reportPerPage))
-          ? Number(data.reportPerPage)
-          : 20,
-      };
-    }
-  } catch (_) {}
-  return {
-    activeTab: "aktivitas",
-    reportFilters: {
-      status: "",
-      dateFrom: "",
-      dateTo: "",
-      search: "",
-      problemTypeId: "",
-    },
-    reportPage: 1,
-    reportPerPage: 20,
-  };
-};
-
 const MyActivities = () => {
-  const reportState = getReportInitialState();
-  const [activeTab, setActiveTab] = useState(reportState.activeTab);
+  const confirm = useConfirm();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState([]);
   const [calendarDatesWithDiproses, setCalendarDatesWithDiproses] = useState(
@@ -97,13 +45,11 @@ const MyActivities = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
-
-  // Report states
-  const [reportData, setReportData] = useState([]);
-  const [reportFilters, setReportFilters] = useState(reportState.reportFilters);
-  const [reportPage, setReportPage] = useState(reportState.reportPage);
-  const [reportPerPage, setReportPerPage] = useState(reportState.reportPerPage);
-  const REPORT_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
+  const proofFileInputRef = useRef(null);
+  const proofPreviewRef = useRef(null);
+  const [cardProofLightboxSrc, setCardProofLightboxSrc] = useState(null);
 
   // Format date to YYYY-MM-DD (local date, avoid UTC shift)
   const formatDate = (date) => {
@@ -120,15 +66,6 @@ const MyActivities = () => {
       day: "numeric",
       month: "long",
       year: "numeric",
-    });
-  };
-
-  // Format time for display
-  const formatTime = (dateStr) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
@@ -192,28 +129,10 @@ const MyActivities = () => {
     }
   }, [selectedDate]);
 
-  // Fetch report data
-  const fetchReportData = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      Object.entries(reportFilters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
-      const res = await api.get(`/activities/report?${params}`);
-      setReportData(res.data);
-    } catch (error) {
-      console.error("Fetch report error:", error);
-    }
-  }, [reportFilters]);
-
   useEffect(() => {
-    if (activeTab === "aktivitas") {
-      fetchActivities();
-      fetchCalendarDates();
-    } else {
-      fetchReportData();
-    }
-  }, [activeTab, fetchActivities, fetchCalendarDates, fetchReportData]);
+    fetchActivities();
+    fetchCalendarDates();
+  }, [fetchActivities, fetchCalendarDates]);
 
   useEffect(() => {
     const fetchProblemTypes = async () => {
@@ -228,23 +147,59 @@ const MyActivities = () => {
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem(
-      STORAGE_KEY_REPORT,
-      JSON.stringify({
-        activeTab,
-        reportFilters,
-        reportPage,
-        reportPerPage,
-      }),
-    );
-  }, [activeTab, reportFilters, reportPage, reportPerPage]);
+    return () => {
+      if (proofPreviewRef.current) {
+        URL.revokeObjectURL(proofPreviewRef.current);
+        proofPreviewRef.current = null;
+      }
+    };
+  }, []);
 
-  // Reset report page when report data changes (e.g. after filter change)
   useEffect(() => {
-    if (activeTab === "laporan") {
-      setReportPage(1);
+    if (!cardProofLightboxSrc) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setCardProofLightboxSrc(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cardProofLightboxSrc]);
+
+  const clearProofSelection = () => {
+    if (proofPreviewRef.current) {
+      URL.revokeObjectURL(proofPreviewRef.current);
+      proofPreviewRef.current = null;
     }
-  }, [reportData, activeTab]);
+    setProofPreviewUrl(null);
+    setProofFile(null);
+    if (proofFileInputRef.current) proofFileInputRef.current.value = "";
+  };
+
+  const handleProofFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      clearProofSelection();
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast({
+        title: "Ukuran file maksimal 25MB",
+        variant: "destructive",
+      });
+      e.target.value = "";
+      return;
+    }
+    if (proofPreviewRef.current) {
+      URL.revokeObjectURL(proofPreviewRef.current);
+      proofPreviewRef.current = null;
+    }
+    const url = URL.createObjectURL(file);
+    proofPreviewRef.current = url;
+    setProofFile(file);
+    setProofPreviewUrl(url);
+  };
+
+  const getProofImageSrc = (proofPhotoUrl) =>
+    proofPhotoUrl ? `${getBaseUrl()}${proofPhotoUrl}` : null;
 
   // Group activities by status for Kanban
   const groupedActivities = {
@@ -306,19 +261,27 @@ const MyActivities = () => {
     if (!activityTitle.trim()) return;
 
     try {
-      await api.post("/activities", {
-        title: activityTitle,
-        currentDate: activityDate,
-        problemTypeId: activityProblemTypeId || null,
+      const formData = new FormData();
+      formData.append("title", activityTitle.trim());
+      formData.append("currentDate", activityDate);
+      formData.append("problemTypeId", activityProblemTypeId || "");
+      if (proofFile) formData.append("photo", proofFile);
+
+      await api.post("/activities", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setShowModal(false);
       setActivityTitle("");
       setActivityProblemTypeId("");
+      clearProofSelection();
       fetchActivities();
       fetchCalendarDates();
     } catch (error) {
       console.error("Create activity error:", error);
-      alert("Gagal membuat aktivitas");
+      toast({
+        title: "Gagal membuat aktivitas",
+        variant: "destructive",
+      });
     }
   };
 
@@ -327,24 +290,66 @@ const MyActivities = () => {
     if (!activityTitle.trim() || !editingActivity) return;
 
     try {
-      await api.put(`/activities/${editingActivity.id}`, {
-        title: activityTitle,
-        problemTypeId: activityProblemTypeId || null,
+      const formData = new FormData();
+      formData.append("title", activityTitle.trim());
+      formData.append("problemTypeId", activityProblemTypeId || "");
+      if (proofFile) formData.append("photo", proofFile);
+
+      await api.put(`/activities/${editingActivity.id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setShowModal(false);
       setActivityTitle("");
       setActivityProblemTypeId("");
       setEditingActivity(null);
+      clearProofSelection();
       fetchActivities();
     } catch (error) {
       console.error("Update activity error:", error);
-      alert("Gagal mengupdate aktivitas");
+      toast({
+        title: "Gagal mengupdate aktivitas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteActivityProof = async (activityId, e) => {
+    if (e) e.stopPropagation();
+    const ok = await confirm({
+      title: "Hapus bukti gambar?",
+      description: "Bukti gambar akan dihapus permanen dari aktivitas ini.",
+      confirmText: "Hapus",
+      cancelText: "Batal",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/activities/${activityId}/proof`);
+      await fetchActivities();
+      setEditingActivity((prev) =>
+        prev && prev.id === activityId
+          ? { ...prev, proofPhotoUrl: null }
+          : prev,
+      );
+    } catch (error) {
+      console.error("Delete proof error:", error);
+      toast({
+        title: "Gagal menghapus bukti gambar",
+        variant: "destructive",
+      });
     }
   };
 
   // Delete activity
   const handleDeleteActivity = async (id) => {
-    if (!window.confirm("Hapus aktivitas ini?")) return;
+    const ok = await confirm({
+      title: "Hapus aktivitas?",
+      description: "Aktivitas ini akan dihapus permanen.",
+      confirmText: "Hapus",
+      cancelText: "Batal",
+      variant: "destructive",
+    });
+    if (!ok) return;
 
     try {
       await api.delete(`/activities/${id}`);
@@ -352,7 +357,10 @@ const MyActivities = () => {
       fetchCalendarDates();
     } catch (error) {
       console.error("Delete activity error:", error);
-      alert("Gagal menghapus aktivitas");
+      toast({
+        title: "Gagal menghapus aktivitas",
+        variant: "destructive",
+      });
     }
   };
 
@@ -363,6 +371,7 @@ const MyActivities = () => {
     setActivityDate(formatDate(new Date()));
     setEditingActivity(null);
     setActivityProblemTypeId("");
+    clearProofSelection();
     setShowModal(true);
   };
 
@@ -374,7 +383,13 @@ const MyActivities = () => {
     setActivityProblemTypeId(
       activity.problemType?.id ? String(activity.problemType.id) : "",
     );
+    clearProofSelection();
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    clearProofSelection();
   };
 
   // Dot kalender: kuning jika ada aktivitas diproses, abu-abu jika hanya selesai/batal
@@ -404,79 +419,6 @@ const MyActivities = () => {
   // Handle month change
   const handleActiveStartDateChange = ({ activeStartDate }) => {
     setSelectedDate(activeStartDate);
-  };
-
-  const getStatusVariant = (status) => {
-    const variants = {
-      diproses: "warning",
-      selesai: "success",
-      batal: "destructive",
-      Diproses: "warning",
-      Selesai: "success",
-      Batal: "destructive",
-      Baru: "default",
-    };
-    return variants[status] || "secondary";
-  };
-
-  const getStatusLabel = (status) => {
-    const labels = {
-      diproses: "Diproses",
-      selesai: "Selesai",
-      batal: "Batal",
-    };
-    return labels[status] || status;
-  };
-
-  // Pagination for Laporan tab
-  const reportTotalItems = reportData.length;
-  const reportTotalPages = Math.max(
-    1,
-    Math.ceil(reportTotalItems / reportPerPage),
-  );
-  const reportPageSafe = Math.min(Math.max(1, reportPage), reportTotalPages);
-  const reportPaginatedData = reportData.slice(
-    (reportPageSafe - 1) * reportPerPage,
-    reportPageSafe * reportPerPage,
-  );
-
-  const handleReportPerPageChange = (value) => {
-    const num = parseInt(value, 10);
-    setReportPerPage(num);
-    setReportPage(1);
-  };
-
-  const handleExportReport = async (type) => {
-    try {
-      const params = new URLSearchParams();
-      Object.entries(reportFilters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
-      const token = localStorage.getItem("token");
-      const baseUrl = getBaseUrl();
-      const url = `${baseUrl}/api/activities/report/export/${type}?${params.toString()}`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Export gagal" }));
-        throw new Error(errorData.message || "Export gagal");
-      }
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `laporan-aktivitas.${type === "excel" ? "xlsx" : "pdf"}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(downloadUrl);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Export error:", error);
-      alert(error.message || "Terjadi kesalahan saat export");
-    }
   };
 
   // Kanban column component
@@ -530,19 +472,58 @@ const MyActivities = () => {
                       </p>
                       <div className="flex gap-1">
                         <button
-                          onClick={() => openEditModal(activity)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(activity);
+                          }}
                           className="p-1 hover:bg-gray-100 rounded"
                         >
                           <Edit2 className="w-3.5 h-3.5 text-gray-500" />
                         </button>
                         <button
-                          onClick={() => handleDeleteActivity(activity.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteActivity(activity.id);
+                          }}
                           className="p-1 hover:bg-red-100 rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-red-500" />
                         </button>
                       </div>
                     </div>
+                    {activity.proofPhotoUrl && (
+                      <div className="relative mt-2">
+                        <button
+                          type="button"
+                          title="Klik untuk pratinjau"
+                          className="w-full p-0 border-0 bg-transparent rounded cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCardProofLightboxSrc(
+                              getProofImageSrc(activity.proofPhotoUrl),
+                            );
+                          }}
+                        >
+                          <img
+                            src={getProofImageSrc(activity.proofPhotoUrl)}
+                            alt="Bukti aktivitas"
+                            className="w-full max-h-24 object-cover rounded border border-gray-200 pointer-events-none"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          title="Hapus bukti gambar"
+                          className="absolute top-1 right-1 p-1 rounded bg-white/90 shadow-sm border border-gray-200 hover:bg-red-50 z-10"
+                          onClick={(e) =>
+                            handleDeleteActivityProof(activity.id, e)
+                          }
+                        >
+                          <X className="w-3.5 h-3.5 text-red-600" />
+                        </button>
+                      </div>
+                    )}
                     <div className="mt-2 text-xs text-gray-600">
                       <span className="text-gray-500">Tipe masalah: </span>
                       <span className="font-medium">
@@ -582,41 +563,7 @@ const MyActivities = () => {
         </h1>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("aktivitas")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "aktivitas"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            <span className="inline-flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Aktivitas
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("laporan")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "laporan"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            <span className="inline-flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Laporan
-            </span>
-          </button>
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "aktivitas" ? (
-        <div className="space-y-4">
+      <div className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={openCreateModal}>
               <Plus className="w-4 h-4 mr-2" />
@@ -678,259 +625,37 @@ const MyActivities = () => {
               </div>
             </DragDropContext>
           )}
-        </div>
-      ) : (
-        // Laporan Tab
-        <div className="space-y-4">
-          {/* Export buttons - filter mempengaruhi hasil export */}
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button
-              onClick={() => handleExportReport("excel")}
-              variant="default"
-              className="bg-green-600 hover:bg-green-700"
+      </div>
+
+      {/* Preview bukti gambar — portal ke body agar menutupi nav (z-30) dan seluruh viewport */}
+      {cardProofLightboxSrc &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80"
+            onClick={() => setCardProofLightboxSrc(null)}
+            role="presentation"
+          >
+            <button
+              type="button"
+              className="fixed top-3 right-3 z-[101] p-2 rounded-full bg-white/15 text-white hover:bg-white/25 sm:top-4 sm:right-4"
+              title="Tutup"
+              aria-label="Tutup pratinjau"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCardProofLightboxSrc(null);
+              }}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export Excel
-            </Button>
-            <Button
-              onClick={() => handleExportReport("pdf")}
-              variant="destructive"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-
-          {/* Report Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Filter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Cari judul/deskripsi..."
-                    value={reportFilters.search}
-                    onChange={(e) =>
-                      setReportFilters((prev) => ({
-                        ...prev,
-                        search: e.target.value,
-                      }))
-                    }
-                    className="pl-10"
-                  />
-                </div>
-                <StatusFilterSelect
-                  variant="activity"
-                  value={reportFilters.status}
-                  onChange={(v) =>
-                    setReportFilters((prev) => ({ ...prev, status: v }))
-                  }
-                  aria-label="Filter status laporan"
-                />
-                <Select
-                  value={reportFilters.problemTypeId}
-                  onChange={(e) =>
-                    setReportFilters((prev) => ({
-                      ...prev,
-                      problemTypeId: e.target.value,
-                    }))
-                  }
-                  aria-label="Filter tipe masalah laporan"
-                >
-                  <option value="">Semua Tipe Masalah</option>
-                  {problemTypes.map((pt) => (
-                    <option key={pt.id} value={pt.id}>
-                      {pt.name}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  type="date"
-                  value={reportFilters.dateFrom}
-                  onChange={(e) =>
-                    setReportFilters((prev) => ({
-                      ...prev,
-                      dateFrom: e.target.value,
-                    }))
-                  }
-                  placeholder="Dari Tanggal"
-                />
-                <Input
-                  type="date"
-                  value={reportFilters.dateTo}
-                  onChange={(e) =>
-                    setReportFilters((prev) => ({
-                      ...prev,
-                      dateTo: e.target.value,
-                    }))
-                  }
-                  placeholder="Sampai Tanggal"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Report Table - Pagination controls */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Tampilkan</span>
-              <Select
-                value={String(reportPerPage)}
-                onChange={(e) => handleReportPerPageChange(e.target.value)}
-                className="w-20"
-              >
-                {REPORT_PER_PAGE_OPTIONS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
-              <span className="text-sm text-gray-600">per halaman</span>
-            </div>
-            {reportTotalItems > 0 && (
-              <div className="text-sm text-gray-600">
-                Menampilkan {(reportPageSafe - 1) * reportPerPage + 1}–
-                {Math.min(reportPageSafe * reportPerPage, reportTotalItems)}{" "}
-                dari {reportTotalItems} data
-              </div>
-            )}
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Waktu Masuk</TableHead>
-                    <TableHead>Waktu Selesai/Batal</TableHead>
-                    <TableHead>Selisih Waktu</TableHead>
-                    <TableHead>Judul Aktivitas / Deskripsi Masalah</TableHead>
-                    <TableHead>Tipe Masalah</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportPaginatedData.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan="7"
-                        className="text-center py-8 text-gray-500"
-                      >
-                        Tidak ada data
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    reportPaginatedData.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              item.type === "activity" ? "outline" : "secondary"
-                            }
-                          >
-                            {item.type === "activity" ? "Aktivitas" : "Tugas"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {formatDateTime(item.entryTime || item.startTime)}
-                        </TableCell>
-                        <TableCell>
-                          {formatDateTime(item.completedAt || item.endTime)}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {item.durationMinutes != null
-                            ? `${item.durationMinutes} menit`
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-md">
-                            <p className="truncate">{item.title}</p>
-                            {item.type === "ticket" && item.ticketNumber && (
-                              <p className="text-xs text-gray-500">
-                                {item.ticketNumber}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="truncate inline-block max-w-[180px]">
-                            {item.problemTypeName || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusVariant(item.status)}>
-                            {getStatusLabel(item.status)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Report pagination - page numbers */}
-          {reportTotalItems > 0 && (
-            <div className="flex flex-wrap justify-between items-center gap-4">
-              <div className="text-sm text-gray-600">
-                Halaman {reportPageSafe} dari {reportTotalPages}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setReportPage((p) => Math.max(1, p - 1))}
-                  disabled={reportPageSafe <= 1}
-                >
-                  Sebelumnya
-                </Button>
-                {Array.from({ length: reportTotalPages }, (_, i) => i + 1)
-                  .filter((p) => {
-                    if (reportTotalPages <= 7) return true;
-                    if (p === 1 || p === reportTotalPages) return true;
-                    if (Math.abs(p - reportPageSafe) <= 2) return true;
-                    return false;
-                  })
-                  .map((p, idx, arr) => {
-                    const prev = arr[idx - 1];
-                    const showEllipsis = prev != null && p - prev > 1;
-                    return (
-                      <React.Fragment key={p}>
-                        {showEllipsis && (
-                          <span className="px-2 text-gray-400">…</span>
-                        )}
-                        <Button
-                          variant={reportPageSafe === p ? "default" : "outline"}
-                          size="sm"
-                          className="min-w-[2.25rem]"
-                          onClick={() => setReportPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      </React.Fragment>
-                    );
-                  })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setReportPage((p) => Math.min(reportTotalPages, p + 1))
-                  }
-                  disabled={reportPageSafe >= reportTotalPages}
-                >
-                  Selanjutnya
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={cardProofLightboxSrc}
+              alt="Pratinjau bukti"
+              className="max-h-[90vh] max-w-full object-contain rounded shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body,
+        )}
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -938,7 +663,7 @@ const MyActivities = () => {
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div
               className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={() => setShowModal(false)}
+              onClick={closeModal}
             ></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">
               &#8203;
@@ -952,7 +677,8 @@ const MyActivities = () => {
                       : "Edit Aktivitas"}
                   </h3>
                   <button
-                    onClick={() => setShowModal(false)}
+                    type="button"
+                    onClick={closeModal}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
                     <X className="w-5 h-5 text-gray-500" />
@@ -1001,6 +727,65 @@ const MyActivities = () => {
                       autoFocus
                     />
                   </div>
+                  <div>
+                    <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                      <ImageIcon className="w-4 h-4" />
+                      Bukti gambar (opsional)
+                    </label>
+                    <Input
+                      ref={proofFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProofFileChange}
+                      className="cursor-pointer"
+                    />
+                    {proofPreviewUrl && (
+                      <div className="mt-2 flex flex-wrap items-start gap-2">
+                        <img
+                          src={proofPreviewUrl}
+                          alt="Pratinjau bukti"
+                          className="max-h-32 rounded border border-gray-200 object-contain"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={clearProofSelection}
+                        >
+                          Hapus pilihan file
+                        </Button>
+                      </div>
+                    )}
+                    {modalMode === "edit" &&
+                      editingActivity?.proofPhotoUrl &&
+                      !proofFile && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs text-gray-500">
+                            Bukti saat ini:
+                          </p>
+                          <div className="relative inline-block max-w-full">
+                            <img
+                              src={getProofImageSrc(
+                                editingActivity.proofPhotoUrl,
+                              )}
+                              alt="Bukti aktivitas"
+                              className="max-h-32 rounded border border-gray-200 object-contain"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() =>
+                              handleDeleteActivityProof(editingActivity.id)
+                            }
+                          >
+                            Hapus bukti gambar
+                          </Button>
+                        </div>
+                      )}
+                  </div>
                 </div>
               </div>
               <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
@@ -1014,7 +799,7 @@ const MyActivities = () => {
                 >
                   {modalMode === "create" ? "Tambah" : "Simpan"}
                 </Button>
-                <Button variant="outline" onClick={() => setShowModal(false)}>
+                <Button variant="outline" onClick={closeModal}>
                   Batal
                 </Button>
               </div>

@@ -1,5 +1,5 @@
 const { sequelize, User, Ticket, ProblemType } = require("../models");
-const { Op } = require("sequelize");
+const { Op, DataTypes } = require("sequelize");
 
 const initializeDatabase = async () => {
   try {
@@ -10,6 +10,24 @@ const initializeDatabase = async () => {
     // Sync models
     await sequelize.sync({ alter: true });
     console.log("Database models synchronized.");
+
+    // Ensure technician_activities.proofPhotoUrl exists (sync alter can skip new columns in some PG setups)
+    try {
+      const qi = sequelize.getQueryInterface();
+      const desc = await qi.describeTable("technician_activities");
+      if (!desc.proofPhotoUrl && !desc.proofphotourl) {
+        await qi.addColumn("technician_activities", "proofPhotoUrl", {
+          type: DataTypes.STRING,
+          allowNull: true,
+        });
+        console.log("Added column proofPhotoUrl to technician_activities.");
+      }
+    } catch (migrationErr) {
+      console.warn(
+        "technician_activities proofPhotoUrl migration:",
+        migrationErr.message,
+      );
+    }
 
     // Backfill problemTypeId from priority for existing tickets
     const ticketsWithPriority = await Ticket.findAll({

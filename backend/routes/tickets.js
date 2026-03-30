@@ -17,8 +17,18 @@ const {
   notifyCoAssignment,
 } = require("../utils/notifications");
 const path = require("path");
+const fs = require("fs");
 
 const router = express.Router();
+
+function unlinkTicketProofFile(proofPhotoUrl) {
+  if (!proofPhotoUrl || typeof proofPhotoUrl !== "string") return;
+  if (!proofPhotoUrl.startsWith("/uploads/")) return;
+  const safeName = path.basename(proofPhotoUrl);
+  if (!safeName || safeName.includes("..")) return;
+  const filePath = path.join(__dirname, "../uploads", safeName);
+  fs.unlink(filePath, () => {});
+}
 
 // Public: Create ticket (no auth required)
 router.post(
@@ -371,7 +381,7 @@ router.get("/my-tasks", authenticate, logActivity, async (req, res) => {
     const { count, rows: tickets } = await Ticket.findAndCountAll({
       where,
       include: includes,
-      order: [["updatedAt", "DESC"]],
+      order: [[literal('"Ticket"."pickedUpAt" DESC NULLS LAST')]],
       limit,
       offset,
     });
@@ -793,12 +803,57 @@ router.post(
         return res.status(403).json({ message: "Admin cannot upload proof" });
       }
 
+      if (ticket.proofPhotoUrl) {
+        unlinkTicketProofFile(ticket.proofPhotoUrl);
+      }
       ticket.proofPhotoUrl = `/uploads/${req.file.filename}`;
       await ticket.save();
 
       res.json(ticket);
     } catch (error) {
       console.error("Upload proof error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+);
+
+// Delete proof photo (teknisi yang assign / co-assign)
+router.delete(
+  "/:id/proof",
+  authenticate,
+  logActivity,
+  async (req, res) => {
+    try {
+      const ticket = await Ticket.findByPk(req.params.id);
+
+      if (!ticket || !ticket.isActive) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      const isAssigned = ticket.assignedTo === req.user.id;
+      const isCoAssigned = await CoAssignment.findOne({
+        where: { ticketId: ticket.id, technicianId: req.user.id },
+      });
+
+      if (!isAssigned && !isCoAssigned && req.user.role !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (req.user.role === "admin") {
+        return res.status(403).json({ message: "Admin cannot delete proof" });
+      }
+
+      if (!ticket.proofPhotoUrl) {
+        return res.status(400).json({ message: "No proof photo to delete" });
+      }
+
+      unlinkTicketProofFile(ticket.proofPhotoUrl);
+      ticket.proofPhotoUrl = null;
+      await ticket.save();
+
+      res.json(ticket);
+    } catch (error) {
+      console.error("Delete proof error:", error);
       res.status(500).json({ message: "Server error" });
     }
   },

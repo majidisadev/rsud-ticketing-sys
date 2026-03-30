@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { ConfirmProvider } from "./context/ConfirmContext";
 
 // Public pages
 import Home from "./pages/Home";
@@ -24,11 +25,13 @@ import ProblemTypesSettings from "./pages/admin/ProblemTypesSettings";
 import TechnicianMyTasks from "./pages/technician/MyTasks";
 import TechnicianAllTasks from "./pages/technician/AllTasks";
 import TechnicianMyActivities from "./pages/technician/MyActivities";
+import TechnicianAllReport from "./pages/technician/AllReport";
 import TicketDetail from "./pages/technician/TicketDetail";
 import AdminAllActivities from "./pages/admin/AllActivities";
 
 import Layout from "./components/Layout";
 import PrivateRoute from "./components/PrivateRoute";
+import { Toaster } from "./components/ui/toaster";
 
 function AppRoutes() {
   return (
@@ -74,6 +77,7 @@ function AppRoutes() {
                   path="my-activities"
                   element={<TechnicianMyActivities />}
                 />
+                <Route path="allreport" element={<TechnicianAllReport />} />
                 <Route path="ticket/:id" element={<TicketDetail />} />
                 <Route
                   path="*"
@@ -172,7 +176,10 @@ function App() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <NotificationProvider>
-          <AppRoutes />
+          <ConfirmProvider>
+            <AppRoutes />
+            <Toaster />
+          </ConfirmProvider>
         </NotificationProvider>
       </AuthProvider>
     </Router>

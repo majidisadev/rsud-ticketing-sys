@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Search, Eye, Download, Clock, CheckCircle, XCircle, ClipboardList, Inbox } from 'lucide-react';
+import { toast } from '../../hooks/use-toast';
 
 const STORAGE_KEY = 'myTasksFilters';
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
@@ -150,7 +151,10 @@ const TechnicianMyTasks = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Export error:', error);
-      alert(error.message || 'Terjadi kesalahan saat export');
+      toast({
+        title: error.message || 'Terjadi kesalahan saat export',
+        variant: 'destructive',
+      });
     }
   };
 
